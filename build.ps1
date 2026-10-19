@@ -64,8 +64,9 @@ Copy-Item (Join-Path $root 'README.md') (Join-Path $release 'README.md')
 Copy-Item (Join-Path $root 'LICENSE') (Join-Path $release 'LICENSE')
 Copy-Item (Join-Path $root 'THIRD-PARTY-NOTICES.txt') (Join-Path $release 'THIRD-PARTY-NOTICES.txt')
 New-Item -ItemType Directory -Force (Join-Path $release 'docs') | Out-Null
-Copy-Item (Join-Path $root 'docs\screenshot.png') (Join-Path $release 'docs\screenshot.png')
-Copy-Item (Join-Path $root 'docs\screenshot-video.png') (Join-Path $release 'docs\screenshot-video.png')
+Copy-Item (Join-Path $root 'docs\screenshot.jpg') (Join-Path $release 'docs\screenshot.jpg')
+Copy-Item (Join-Path $root 'docs\screenshot-video.jpg') (Join-Path $release 'docs\screenshot-video.jpg')
+Copy-Item (Join-Path $root 'docs\screenshot-settings.jpg') (Join-Path $release 'docs\screenshot-settings.jpg')
 
 $portableZip = Join-Path $build 'DeskFlow-1.0.3-win64.zip'
 if (Test-Path $portableZip) { Remove-Item $portableZip -Force }

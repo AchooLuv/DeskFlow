@@ -4,7 +4,7 @@ DeskFlow 是一个**轻量、开源、免费的 Windows 10/11 动态壁纸引擎
 
 关键词：Windows 动态壁纸、视频壁纸、图片轮播壁纸、桌面壁纸引擎、Live Wallpaper、Video Wallpaper、Wallpaper Engine 替代品、Lively Wallpaper 替代品。
 
-![DeskFlow 主界面](docs/screenshot.png)
+![DeskFlow 主界面](docs/screenshot.jpg)
 
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6)](https://github.com/AchooLuv/DeskFlow/releases)
 [![License](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
@@ -31,7 +31,7 @@ DeskFlow 是一个**轻量、开源、免费的 Windows 10/11 动态壁纸引擎
 
 ### 视频动态壁纸
 
-![DeskFlow 动态壁纸](docs/screenshot-video.png)
+![DeskFlow 动态壁纸](docs/screenshot-video.jpg)
 
 - 支持 **MKV、MP4、AVI、MOV、WMV、WEBM、FLV、M4V、TS、MPG** 等常见格式。
 - 播放倍率 **0.25× – 2.00×**。
@@ -41,6 +41,8 @@ DeskFlow 是一个**轻量、开源、免费的 Windows 10/11 动态壁纸引擎
 - 选择视频后，软件内自动抓取并显示视频封面，不再只有占位图标。
 
 ### 桌面与系统集成
+
+![DeskFlow 设置界面](docs/screenshot-settings.jpg)
 
 - **任务栏默认完全透明**，不使用毛玻璃 / 亚克力效果，并会在 Explorer 重建后自动恢复。
 - 全屏游戏或全屏视频运行时自动暂停壁纸。
