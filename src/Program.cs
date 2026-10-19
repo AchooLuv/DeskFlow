@@ -41,40 +41,52 @@ namespace DeskFlow
             }
 
             bool createdNew;
-            using (Mutex mutex = new Mutex(true, "Local\\DeskFlow.SingleInstance", out createdNew))
+            Mutex mutex = null;
+            try
             {
-                if (!createdNew)
+                mutex = SingleInstance.Create(out createdNew);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("创建单实例锁失败", ex);
+                createdNew = false;
+            }
+
+            if (mutex == null || !createdNew)
+            {
+                TrayContext.SignalExistingInstance();
+                return;
+            }
+
+            try
+            {
+                if (!Runtime.IsReady)
                 {
-                    TrayContext.SignalExistingInstance();
-                    return;
+                    using (PrepareForm prepare = new PrepareForm())
+                    {
+                        if (prepare.ShowDialog() != DialogResult.OK) return;
+                    }
+                }
+                else
+                {
+                    Runtime.DeleteOldPayloads();
                 }
 
-                try
-                {
-                    if (!Runtime.IsReady)
-                    {
-                        using (PrepareForm prepare = new PrepareForm())
-                        {
-                            if (prepare.ShowDialog() != DialogResult.OK) return;
-                        }
-                    }
-                    else
-                    {
-                        Runtime.DeleteOldPayloads();
-                    }
-
-                    Log.Info("DeskFlow 启动，版本 1.0.0");
-                    Application.Run(new TrayContext(startHidden));
-                }
-                catch (Exception ex)
-                {
-                    Log.Error("启动失败", ex);
-                    MessageBox.Show("DeskFlow 启动失败：\n\n" + ex.Message, "DeskFlow",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                finally
+                Log.Info("DeskFlow 启动，版本 1.0.1");
+                Application.Run(new TrayContext(startHidden));
+            }
+            catch (Exception ex)
+            {
+                Log.Error("启动失败", ex);
+                MessageBox.Show("DeskFlow 启动失败：\n\n" + ex.Message + "\n\n日志：" + Log.LogPath, "DeskFlow",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                if (mutex != null)
                 {
                     try { mutex.ReleaseMutex(); } catch { }
+                    try { mutex.Dispose(); } catch { }
                 }
             }
         }

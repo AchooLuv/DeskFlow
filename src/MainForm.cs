@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace DeskFlow
@@ -142,7 +143,7 @@ namespace DeskFlow
             _statusPerf.SetBounds(12, 78, 158, 18);
             _statusCard.Controls.Add(_statusPerf);
 
-            _version = Ui.Label("v1.0.0  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
+            _version = Ui.Label("v1.0.1  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
             _version.SetBounds(16, 0, 180, 18);
             _sidebar.Controls.Add(_version);
 
@@ -214,7 +215,7 @@ namespace DeskFlow
                     " scaleDims=" + AutoScaleDimensions);
                 CenterOnPrimaryScreen();
                 _uiTimer.Start();
-                ShowPage(Math.Max(0, Math.Min(2, _settings.LastPage)));
+                ShowPage(Math.Max(0, Math.Min(2, _settings.LastPage)), false);
                 RefreshUi();
                 if (_controller.DesktopAttachFailed && !_attachWarned)
                 {
@@ -291,10 +292,30 @@ namespace DeskFlow
             _navSettings.Active = _currentPage == 2;
         }
 
-        private void ShowPage(int index)
+        private void ShowPage(int index, bool activateMode = true)
         {
             _currentPage = index;
             _settings.LastPage = index;
+
+            bool modeChanged = false;
+            if (activateMode)
+            {
+                if (index == 0 && _settings.Mode != "slideshow"
+                    && !string.IsNullOrEmpty(_settings.ImageFolder)
+                    && Directory.Exists(_settings.ImageFolder))
+                {
+                    _settings.Mode = "slideshow";
+                    modeChanged = true;
+                }
+                else if (index == 1 && _settings.Mode != "video"
+                    && !string.IsNullOrEmpty(_settings.VideoPath)
+                    && File.Exists(_settings.VideoPath))
+                {
+                    _settings.Mode = "video";
+                    modeChanged = true;
+                }
+            }
+
             _slideshowPage.Visible = index == 0;
             _videoPage.Visible = index == 1;
             _settingsPage.Visible = index == 2;
@@ -302,6 +323,11 @@ namespace DeskFlow
             else if (index == 1) _videoPage.RefreshLayout();
             else _settingsPage.RefreshLayout();
             UpdateSidebar();
+            if (modeChanged)
+            {
+                _context.OnSettingsChanged();
+                ShowToast(index == 0 ? "已切换到图片轮播" : "已切换到动态壁纸");
+            }
             _context.SaveSoon();
         }
 

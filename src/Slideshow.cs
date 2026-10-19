@@ -47,8 +47,23 @@ namespace DeskFlow
             _folder = folder ?? string.Empty;
             _intervalSeconds = Math.Max(3, Math.Min(3600, intervalSeconds));
             _shuffle = shuffle;
-            if (folderChanged) Scan();
-            else if (!_paused && CurrentBitmap != null) StartTimer();
+            if (folderChanged || _paths.Count == 0)
+            {
+                Scan();
+            }
+            else if (CurrentBitmap == null)
+            {
+                // The slideshow was stopped while video mode was active. Reuse
+                // the scanned list instead of requiring the folder to be picked
+                // again.
+                _paused = false;
+                LoadCurrent();
+                if (!_paused) StartTimer();
+            }
+            else if (!_paused)
+            {
+                StartTimer();
+            }
             RaiseState();
         }
 

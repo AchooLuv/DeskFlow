@@ -24,14 +24,14 @@ namespace DeskFlow
 
         public AppSettings()
         {
-            Schema = 1;
+            Schema = 2;
             Mode = "none";
             ImageFolder = string.Empty;
             IntervalSeconds = 30;
             Shuffle = false;
             VideoPath = string.Empty;
             PlaybackRate = 1.0;
-            Volume = 30;
+            Volume = 0;
             Loop = true;
             TaskbarTransparent = true;
             MinimizeToTray = true;
@@ -82,6 +82,13 @@ namespace DeskFlow
         public void Normalize()
         {
             if (Schema <= 0) Schema = 1;
+            if (Schema < 2)
+            {
+                // v1 shipped with a 30% default. Migrate that default to mute;
+                // an explicitly different volume is preserved.
+                if (Volume == 30) Volume = 0;
+                Schema = 2;
+            }
             if (Mode != "slideshow" && Mode != "video") Mode = "none";
             if (ImageFolder == null) ImageFolder = string.Empty;
             if (VideoPath == null) VideoPath = string.Empty;

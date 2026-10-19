@@ -18,7 +18,7 @@ DeskFlow 是一个轻量的 Windows 动态壁纸引擎：把图片文件夹变�
 
 - 支持 MKV、MP4、AVI、MOV、WMV、WEBM、FLV、M4V、TS、MPG 等常见视频格式。
 - 播放倍率 0.25× – 2.00×。
-- 音量 0 – 100%。
+- 音量 0 – 100%，默认静音。
 - 循环播放默认开启，可关闭。
 - 使用 VLC 3.0.21 播放引擎，优先启用硬件解码；视频嵌入桌面 WorkerW，位于桌面图标之下。
 
@@ -47,7 +47,8 @@ DeskFlow 是一个轻量的 Windows 动态壁纸引擎：把图片文件夹变�
 2. 双击运行。首次启动会显示“正在准备播放引擎”，约数秒后进入主界面。
 3. **图片轮播**：选择图片文件夹，设置间隔；壁纸会立即开始轮播。
 4. **动态壁纸**：选择视频，调整倍率、音量或循环；壁纸会立即播放。
-5. 关闭窗口后程序仍在托盘运行。右键托盘图标可以暂停、切歌或退出。
+5. 已经配置过两种壁纸后，直接点击左侧“图片轮播”或“动态壁纸”即可切换，不需要重新选择文件。
+6. 关闭窗口后程序仍在托盘运行。右键托盘图标可以暂停、切歌或退出。
 
 设置保存在 `%APPDATA%\DeskFlow\settings.json`，日志在 `%LOCALAPPDATA%\DeskFlow\DeskFlow.log`。
 
@@ -85,7 +86,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 输出：
 
 - `build\DeskFlow.exe`：单文件可执行程序。
-- `build\DeskFlow-1.0.0-win64.zip`：含程序、README 与许可文件的便携包。
+- `build\DeskFlow-1.0.1-win64.zip`：含程序、README 与许可文件的便携包。
 
 ## 已知限制
 

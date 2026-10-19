@@ -82,12 +82,12 @@ namespace DeskFlow
             _volumeCaption.SetBounds(16, 106, 120, 20);
             _sideCard.Controls.Add(_volumeCaption);
 
-            _volumeValue = Ui.Label("30%", Theme.SmallBold, Theme.Text, Theme.Card);
+            _volumeValue = Ui.Label("0%", Theme.SmallBold, Theme.Text, Theme.Card);
             _volumeValue.SetBounds(180, 106, 80, 20);
             _volumeValue.TextAlign = ContentAlignment.MiddleRight;
             _sideCard.Controls.Add(_volumeValue);
 
-            _volume = new ModernSlider { Minimum = 0, Maximum = 100, Step = 1, Value = 30 };
+            _volume = new ModernSlider { Minimum = 0, Maximum = 100, Step = 1, Value = 0 };
             _volume.SetBounds(16, 128, 244, 28);
             _volume.ValueChanged += delegate
             {

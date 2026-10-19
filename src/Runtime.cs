@@ -71,11 +71,24 @@ namespace DeskFlow
             {
                 try
                 {
-                    return File.Exists(ReadyMarker)
-                        && File.Exists(Path.Combine(VlcDir, "libvlc.dll"))
-                        && File.Exists(Path.Combine(VlcDir, "libvlccore.dll"))
-                        && Directory.Exists(PluginsDir)
-                        && File.Exists(WebpTool);
+                    string libvlc = Path.Combine(VlcDir, "libvlc.dll");
+                    string core = Path.Combine(VlcDir, "libvlccore.dll");
+                    if (!File.Exists(ReadyMarker)
+                        || !File.Exists(libvlc)
+                        || new FileInfo(libvlc).Length < 100 * 1024
+                        || !File.Exists(core)
+                        || new FileInfo(core).Length < 1024 * 1024
+                        || !Directory.Exists(PluginsDir)
+                        || !File.Exists(WebpTool))
+                        return false;
+
+                    // Detect a runtime copied by an administrator but unreadable
+                    // to the current account.
+                    using (FileStream stream = new FileStream(libvlc, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        if (stream.ReadByte() < 0) return false;
+                    }
+                    return true;
                 }
                 catch { return false; }
             }
@@ -161,7 +174,11 @@ namespace DeskFlow
                     string finalDir = RuntimeDir;
                     if (Directory.Exists(finalDir))
                     {
-                        try { Directory.Delete(finalDir, true); } catch { }
+                        try { Directory.Delete(finalDir, true); }
+                        catch (Exception ex)
+                        {
+                            throw new IOException("无法替换旧的播放引擎目录（可能被占用或权限不足）: " + finalDir, ex);
+                        }
                     }
                     Directory.CreateDirectory(RuntimeRoot);
                     Directory.Move(tempRoot, finalDir);

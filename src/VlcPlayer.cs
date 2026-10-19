@@ -23,7 +23,7 @@ namespace DeskFlow
         private LibVlcEventCallback _callback;
         private readonly SynchronizationContext _sync;
         private double _rate = 1.0;
-        private int _volume = 30;
+        private int _volume = 0;
         private bool _loop = true;
         private bool _disposed;
         private bool _started;
@@ -64,9 +64,31 @@ namespace DeskFlow
 
             NativeMethods.SetDllDirectory(Runtime.VlcDir);
             Environment.SetEnvironmentVariable("VLC_PLUGIN_PATH", Runtime.PluginsDir);
+
+            // Make sure dependent DLLs are searched next to libvlc even when the
+            // application was started from a shortcut with a different working
+            // directory, or when a non-elevated process has a restricted PATH.
+            string currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            if (currentPath.IndexOf(Runtime.VlcDir, StringComparison.OrdinalIgnoreCase) < 0)
+                Environment.SetEnvironmentVariable("PATH", Runtime.VlcDir + ";" + currentPath);
+
+            string core = Path.Combine(Runtime.VlcDir, "libvlccore.dll");
             string dll = Path.Combine(Runtime.VlcDir, "libvlc.dll");
-            if (NativeMethods.LoadLibrary(dll) == IntPtr.Zero)
-                throw new InvalidOperationException("无法加载 libvlc.dll (错误码 " + Marshal.GetLastWin32Error() + ")");
+            IntPtr coreHandle = NativeMethods.LoadLibrary(core);
+            if (coreHandle == IntPtr.Zero)
+                Log.Warn("加载 libvlccore.dll 失败，错误码 " + Marshal.GetLastWin32Error());
+
+            IntPtr vlcHandle = IntPtr.Zero;
+            for (int attempt = 0; attempt < 3 && vlcHandle == IntPtr.Zero; attempt++)
+            {
+                if (attempt > 0) System.Threading.Thread.Sleep(180);
+                vlcHandle = NativeMethods.LoadLibrary(dll);
+                if (vlcHandle == IntPtr.Zero)
+                    vlcHandle = NativeMethods.LoadLibraryEx(dll, IntPtr.Zero, 0x00000008);
+            }
+            if (vlcHandle == IntPtr.Zero)
+                throw new InvalidOperationException("无法加载 libvlc.dll (错误码 "
+                    + Marshal.GetLastWin32Error() + ")，路径: " + dll);
             Log.Info("VLC: libvlc.dll 已加载");
 
             List<string> args = new List<string>
