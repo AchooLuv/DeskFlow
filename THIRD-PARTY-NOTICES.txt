@@ -1,0 +1,35 @@
+DeskFlow 1.0.0 — Third-Party Notices
+=====================================
+
+DeskFlow itself is licensed under the GNU General Public License, version 3
+(see LICENSE). It dynamically loads the following third-party components:
+
+1. VLC media player 3.0.21 (libvlc)
+   Files: libvlc.dll, libvlccore.dll and the plugins/ directory, distributed
+   inside the embedded runtime payload.
+   License: GNU General Public License version 2 or later.
+   Project: https://www.videolan.org/vlc/
+   Source:  https://download.videolan.org/pub/videolan/vlc/3.0.21/
+   The complete VLC license text is included in the runtime as
+   vlc/COPYING.txt when the player engine is unpacked, and is also available
+   from the URL above.
+
+2. libwebp 1.6.0 (dwebp.exe)
+   File: tools/dwebp.exe, used only to decode WebP images when the operating
+   system has no WebP codec.
+   License: BSD 3-Clause.
+   Copyright: Google LLC.
+   Project: https://chromium.googlesource.com/webm/libwebp
+   Source:  https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0-windows-x64.zip
+
+3. Microsoft .NET Framework 4.8
+   DeskFlow targets the .NET Framework 4.8 runtime that ships with supported
+   Windows 10/11 installations. It is a Microsoft system component and is not
+   redistributed inside DeskFlow.exe.
+
+The source code for DeskFlow is available at:
+https://github.com/AchooLuv/DeskFlow
+
+VLC and libwebp are separate programs. DeskFlow invokes libvlc through its
+public C API and runs dwebp as a separate process. No warranty is provided;
+see the respective licenses for details.
