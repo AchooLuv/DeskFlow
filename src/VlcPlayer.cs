@@ -326,6 +326,20 @@ namespace DeskFlow
             }
         }
 
+        public bool TakeSnapshot(string path)
+        {
+            if (_player == IntPtr.Zero) return false;
+            try
+            {
+                return libvlc_video_take_snapshot(_player, 0, path, 960, 540) == 0;
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("视频封面截图失败: " + ex.Message);
+                return false;
+            }
+        }
+
         public void Stop()
         {
             StopInternal(true);
@@ -428,6 +442,10 @@ namespace DeskFlow
 
         [DllImport("libvlc.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int libvlc_media_player_is_playing(IntPtr player);
+
+        [DllImport("libvlc.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int libvlc_video_take_snapshot(IntPtr player, uint num,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string path, uint width, uint height);
 
         [DllImport("libvlc.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern long libvlc_media_player_get_length(IntPtr player);

@@ -212,7 +212,7 @@ namespace DeskFlow
 
             _preview.VideoMode = true;
             _preview.Glyph = "\uE714";
-            _preview.PreviewImage = null;
+            _preview.PreviewImage = enabled ? controller.VideoCover : null;
 
             if (!enabled)
             {

@@ -38,6 +38,7 @@ DeskFlow 是一个**轻量、开源、免费的 Windows 10/11 动态壁纸引擎
 - 音量 **0 – 100%**，默认静音。
 - 循环播放默认开启，可关闭。
 - 使用 VLC 3.0.21 播放引擎，优先硬件解码；视频嵌入桌面 WorkerW，位于桌面图标下方。
+- 选择视频后，软件内自动抓取并显示视频封面，不再只有占位图标。
 
 ### 桌面与系统集成
 
@@ -129,7 +130,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 输出：
 
 - `build\DeskFlow.exe`：单文件可执行程序。
-- `build\DeskFlow-1.0.2-win64.zip`：含程序、README 与许可文件的便携包。
+- `build\DeskFlow-1.0.3-win64.zip`：含程序、README 与许可文件的便携包。
 
 ## 已知限制
 

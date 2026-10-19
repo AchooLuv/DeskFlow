@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
 
@@ -9,6 +10,7 @@ namespace DeskFlow
     {
         private readonly Slideshow _slideshow;
         private readonly Timer _maintenance;
+        private readonly Timer _coverTimer;
         private VlcPlayer _vlc;
         private WallpaperWindow _window;
         private AppSettings _settings;
@@ -20,6 +22,9 @@ namespace DeskFlow
         private string _lastVideoError;
         private DateTime _lastAttachAttempt = DateTime.MinValue;
         private bool _desktopAttachFailed;
+        private Bitmap _videoCover;
+        private string _coverVideoPath;
+        private int _coverAttempts;
 
         public event Action PreviewChanged;
         public event Action StateChanged;
@@ -41,6 +46,9 @@ namespace DeskFlow
             _maintenance.Tick += delegate { Maintain(); };
             _maintenance.Start();
 
+            _coverTimer = new Timer { Interval = 900 };
+            _coverTimer.Tick += delegate { CaptureVideoCover(); };
+
             Apply(_settings, true);
         }
 
@@ -53,6 +61,7 @@ namespace DeskFlow
         public string CurrentImagePath { get { return _slideshow.CurrentPath; } }
         public int ImageCount { get { return _slideshow.ImageCount; } }
         public Bitmap CurrentImage { get { return _slideshow.CurrentBitmap; } }
+        public Bitmap VideoCover { get { return _videoCover; } }
         public long VideoLength { get { return _vlc != null ? _vlc.Length : 0; } }
         public long VideoPosition { get { return _vlc != null ? _vlc.Position : 0; } }
 
@@ -84,6 +93,7 @@ namespace DeskFlow
                 if (!File.Exists(_settings.VideoPath))
                 {
                     StopVideo();
+                    ClearVideoCover();
                     ShowFallback();
                     RaiseState();
                     return;
@@ -137,6 +147,10 @@ namespace DeskFlow
         {
             _videoActive = false;
             _lastVideoError = null;
+            _coverTimer.Stop();
+            _coverAttempts = 0;
+            if (!string.Equals(_coverVideoPath, _settings.VideoPath, StringComparison.OrdinalIgnoreCase))
+                ClearVideoCover();
             _window.ShowVideo();
             if (_vlc == null) _vlc = new VlcPlayer();
             _vlc.Started -= OnVideoStarted;
@@ -169,7 +183,73 @@ namespace DeskFlow
             _videoActive = true;
             _window.ShowVideo();
             ApplyPauseState();
+            _coverTimer.Stop();
+            _coverAttempts = 0;
+            _coverTimer.Start();
             RaiseState();
+        }
+
+        private void CaptureVideoCover()
+        {
+            _coverTimer.Stop();
+            if (_disposed || _vlc == null || !_videoActive || string.IsNullOrEmpty(_settings.VideoPath))
+                return;
+
+            string temp = Path.Combine(Path.GetTempPath(), "DeskFlow-cover-" + Guid.NewGuid().ToString("N") + ".jpg");
+            try
+            {
+                if (!_vlc.TakeSnapshot(temp) || !File.Exists(temp))
+                {
+                    if (_coverAttempts < 2)
+                    {
+                        _coverAttempts++;
+                        _coverTimer.Start();
+                    }
+                    return;
+                }
+                _coverAttempts = 0;
+
+                Bitmap cover = null;
+                using (FileStream stream = new FileStream(temp, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (Image image = Image.FromStream(stream, true, true))
+                {
+                    cover = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
+                    using (Graphics g = Graphics.FromImage(cover))
+                    {
+                        g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                        g.DrawImage(image, 0, 0, image.Width, image.Height);
+                    }
+                }
+
+                Bitmap previous = _videoCover;
+                _videoCover = cover;
+                _coverVideoPath = _settings.VideoPath;
+                Action handler = PreviewChanged;
+                if (handler != null) handler();
+                if (previous != null && !ReferenceEquals(previous, cover))
+                {
+                    try { previous.Dispose(); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("读取视频封面失败: " + ex.Message);
+            }
+            finally
+            {
+                try { File.Delete(temp); } catch { }
+            }
+        }
+
+        private void ClearVideoCover()
+        {
+            _coverVideoPath = null;
+            Bitmap previous = _videoCover;
+            _videoCover = null;
+            if (previous != null)
+            {
+                try { previous.Dispose(); } catch { }
+            }
         }
 
         private void OnVideoError(string message)
@@ -243,7 +323,16 @@ namespace DeskFlow
         private void ApplyPauseState()
         {
             bool paused = IsPaused;
-            if (_settings.Mode == "video" && _vlc != null) _vlc.Pause(paused);
+            if (_settings.Mode == "video" && _vlc != null)
+            {
+                _vlc.Pause(paused);
+                if (!paused && _videoActive && _videoCover == null)
+                {
+                    _coverTimer.Stop();
+                    _coverAttempts = 0;
+                    _coverTimer.Start();
+                }
+            }
             if (_settings.Mode == "slideshow") _slideshow.SetPaused(paused);
         }
 
@@ -348,6 +437,9 @@ namespace DeskFlow
             _disposed = true;
             _maintenance.Stop();
             _maintenance.Dispose();
+            _coverTimer.Stop();
+            ClearVideoCover();
+            _coverTimer.Dispose();
             try { _slideshow.Dispose(); } catch { }
             try { StopVideo(); } catch { }
             try

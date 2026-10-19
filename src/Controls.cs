@@ -865,6 +865,22 @@ namespace DeskFlow
                     });
                 }
             }
+            else if (_image != null && _videoMode)
+            {
+                float size = 38;
+                RectangleF circle = new RectangleF(Width - size - 14, 14, size, size);
+                using (SolidBrush brush = new SolidBrush(Color.FromArgb(150, 8, 12, 18)))
+                    g.FillEllipse(brush, circle);
+                using (SolidBrush brush = new SolidBrush(Color.White))
+                {
+                    float cx = circle.X + size / 2f;
+                    float cy = circle.Y + size / 2f;
+                    g.FillPolygon(brush, new PointF[]
+                    {
+                        new PointF(cx - 4, cy - 7), new PointF(cx - 4, cy + 7), new PointF(cx + 8, cy)
+                    });
+                }
+            }
 
             int textWidth = Width - 32;
             string title = Theme.Ellipsis(_title, Theme.H3, textWidth);

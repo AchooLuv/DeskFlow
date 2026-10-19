@@ -67,7 +67,7 @@ New-Item -ItemType Directory -Force (Join-Path $release 'docs') | Out-Null
 Copy-Item (Join-Path $root 'docs\screenshot.png') (Join-Path $release 'docs\screenshot.png')
 Copy-Item (Join-Path $root 'docs\screenshot-video.png') (Join-Path $release 'docs\screenshot-video.png')
 
-$portableZip = Join-Path $build 'DeskFlow-1.0.2-win64.zip'
+$portableZip = Join-Path $build 'DeskFlow-1.0.3-win64.zip'
 if (Test-Path $portableZip) { Remove-Item $portableZip -Force }
 [IO.Compression.ZipFile]::CreateFromDirectory($release, $portableZip, [IO.Compression.CompressionLevel]::Optimal, $false)
 Write-Host ("Portable zip: {0:N1} MB" -f ((Get-Item $portableZip).Length / 1MB))
