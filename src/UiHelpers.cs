@@ -7,7 +7,7 @@ namespace DeskFlow
     internal abstract class PageBase : UserControl
     {
         protected const int ContentMargin = 32;
-        protected const int ContentTop = 92;
+        protected const int ContentTop = 102;
 
         public string HeaderTitle { get; set; }
         public string HeaderSubtitle { get; set; }
@@ -26,9 +26,9 @@ namespace DeskFlow
         {
             Graphics g = e.Graphics;
             g.Clear(Theme.Background);
-            TextRenderer.DrawText(g, HeaderTitle, Theme.H1, new Rectangle(ContentMargin, 14, Width - ContentMargin * 2, 36),
+            TextRenderer.DrawText(g, HeaderTitle, Theme.H1, new Rectangle(ContentMargin, 8, Width - ContentMargin * 2, 48),
                 Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-            TextRenderer.DrawText(g, HeaderSubtitle, Theme.Small, new Rectangle(ContentMargin, 54, Width - ContentMargin * 2, 22),
+            TextRenderer.DrawText(g, HeaderSubtitle, Theme.Small, new Rectangle(ContentMargin, 58, Width - ContentMargin * 2, 22),
                 Theme.TextMuted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
 

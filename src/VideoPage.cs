@@ -114,8 +114,8 @@ namespace DeskFlow
             _loopCaption.Cursor = Cursors.Hand;
             _loopCaption.Click += delegate { _loop.Checked = !_loop.Checked; };
 
-            _formatHint = Ui.Label("支持 MKV / MP4 / AVI\nMOV / WMV / WEBM 等", Theme.Tiny, Theme.TextDim, Theme.Card);
-            _formatHint.SetBounds(16, 200, 244, 32);
+            _formatHint = Ui.Label("MKV · MP4 · AVI · MOV · WMV · WEBM", Theme.Tiny2, Theme.TextDim, Theme.Card);
+            _formatHint.SetBounds(16, 202, 244, 18);
             _sideCard.Controls.Add(_formatHint);
 
             _fileCard = Ui.Card(Theme.Background);
@@ -274,6 +274,7 @@ namespace DeskFlow
             _speedValue.Left = sideWidth - 96;
             _volumeValue.Left = sideWidth - 96;
             _loop.Location = new Point(sideWidth - 58, 173);
+            _formatHint.Width = Math.Max(120, sideWidth - 32);
 
             int fileY = top + previewHeight + 16;
             _fileCard.SetBounds(margin, fileY, inner, 76);

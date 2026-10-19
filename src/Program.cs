@@ -29,33 +29,44 @@ namespace DeskFlow
             };
 
             bool startHidden = false;
+            bool standalone = false;
             foreach (string arg in args)
             {
                 if (string.Equals(arg, "--autostart", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(arg, "--hidden", StringComparison.OrdinalIgnoreCase))
                     startHidden = true;
+                else if (string.Equals(arg, "--standalone", StringComparison.OrdinalIgnoreCase))
+                    standalone = true;
                 else if (arg.StartsWith("--data-dir=", StringComparison.OrdinalIgnoreCase))
                     AppPaths.OverrideDirectory = arg.Substring("--data-dir=".Length).Trim('"');
                 else if (string.Equals(arg, "--portable", StringComparison.OrdinalIgnoreCase))
                     AppPaths.OverrideDirectory = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
             }
 
-            bool createdNew;
+            bool createdNew = true;
             Mutex mutex = null;
-            try
+            if (!standalone)
             {
-                mutex = SingleInstance.Create(out createdNew);
-            }
-            catch (Exception ex)
-            {
-                Log.Error("创建单实例锁失败", ex);
-                createdNew = false;
-            }
+                try
+                {
+                    mutex = SingleInstance.Create(out createdNew);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("创建单实例锁失败", ex);
+                    createdNew = false;
+                }
 
-            if (mutex == null || !createdNew)
-            {
-                TrayContext.SignalExistingInstance();
-                return;
+                if (mutex == null || !createdNew)
+                {
+                    IntPtr existingWindow = NativeMethods.FindWindow(null, "DeskFlow.Message");
+                    if (existingWindow != IntPtr.Zero)
+                    {
+                        TrayContext.SignalExistingInstance();
+                        return;
+                    }
+                    Log.Warn("检测到残留的单实例锁，但没有运行中的 DeskFlow 窗口，继续启动。");
+                }
             }
 
             try
@@ -72,7 +83,7 @@ namespace DeskFlow
                     Runtime.DeleteOldPayloads();
                 }
 
-                Log.Info("DeskFlow 启动，版本 1.0.1");
+                Log.Info("DeskFlow 启动，版本 1.0.2");
                 Application.Run(new TrayContext(startHidden));
             }
             catch (Exception ex)

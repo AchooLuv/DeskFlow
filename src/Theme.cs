@@ -38,6 +38,7 @@ namespace DeskFlow
         public static readonly Font Small;
         public static readonly Font SmallBold;
         public static readonly Font Tiny;
+        public static readonly Font Tiny2;
         public static readonly Font ButtonFont;
         public static readonly Font NavFont;
         public static readonly Font Icon12;
@@ -60,6 +61,7 @@ namespace DeskFlow
             Small = new Font(UiFamily, 8.5f, FontStyle.Regular, GraphicsUnit.Point);
             SmallBold = new Font(UiFamily, 8.5f, FontStyle.Bold, GraphicsUnit.Point);
             Tiny = new Font(UiFamily, 7.8f, FontStyle.Regular, GraphicsUnit.Point);
+            Tiny2 = new Font(UiFamily, 7.2f, FontStyle.Regular, GraphicsUnit.Point);
             ButtonFont = new Font(UiFamily, 9.2f, FontStyle.Regular, GraphicsUnit.Point);
             NavFont = new Font(UiFamily, 10f, FontStyle.Regular, GraphicsUnit.Point);
             Icon12 = new Font(IconFamily, 9f, FontStyle.Regular, GraphicsUnit.Point);
