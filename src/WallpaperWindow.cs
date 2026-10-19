@@ -71,9 +71,9 @@ namespace DeskFlow
         public bool AttachToDesktop()
         {
             if (!IsHandleCreated) CreateHandle();
-            IntPtr progman;
-            IntPtr workerw = NativeMethods.FindDesktopWorkerW(out progman);
-            IntPtr target = workerw != IntPtr.Zero ? workerw : progman;
+            NativeMethods.DesktopTarget desktop = NativeMethods.FindDesktopTarget();
+            IntPtr target = desktop.Raised ? desktop.Progman : desktop.WorkerW;
+            if (target == IntPtr.Zero) target = desktop.Progman;
             if (target == IntPtr.Zero)
             {
                 Log.Warn("未找到桌面 WorkerW / Progman，将使用普通窗口。");
@@ -82,21 +82,40 @@ namespace DeskFlow
             }
 
             _desktopParent = target;
+            Log.Info("桌面挂载目标: progman=" + desktop.Progman + " workerw=" + desktop.WorkerW
+                + " defview=" + desktop.DefView + " raised=" + desktop.Raised + " target=" + target);
             NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
+            int oldStyle = NativeMethods.GetWindowLong(Handle, NativeMethods.GWL_STYLE);
+            NativeMethods.SetWindowLong(Handle, NativeMethods.GWL_STYLE,
+                (oldStyle & ~NativeMethods.WS_POPUP) | NativeMethods.WS_CHILD);
+
+            if (desktop.Raised)
+            {
+                int exStyle = NativeMethods.GetWindowLong(Handle, NativeMethods.GWL_EXSTYLE);
+                NativeMethods.SetWindowLong(Handle, NativeMethods.GWL_EXSTYLE,
+                    exStyle | NativeMethods.WS_EX_LAYERED);
+                NativeMethods.SetLayeredWindowAttributes(Handle, 0, 255, NativeMethods.LWA_ALPHA);
+            }
+
             bool parented = NativeMethods.SetParent(Handle, target) != IntPtr.Zero;
             if (!parented)
             {
                 Log.Warn("SetParent 失败，错误码 " + System.Runtime.InteropServices.Marshal.GetLastWin32Error()
                     + "；为避免遮挡桌面，壁纸窗口将保持隐藏。");
+                NativeMethods.SetWindowLong(Handle, NativeMethods.GWL_STYLE, oldStyle);
                 NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
                 return false;
             }
+
             Rectangle bounds = Screen.PrimaryScreen.Bounds;
-            NativeMethods.SetWindowPos(Handle, NativeMethods.HWND_TOP, bounds.Left, bounds.Top,
+            IntPtr insertAfter = desktop.Raised && desktop.DefView != IntPtr.Zero
+                ? desktop.DefView
+                : NativeMethods.HWND_TOP;
+            NativeMethods.SetWindowPos(Handle, insertAfter, bounds.Left, bounds.Top,
                 bounds.Width, bounds.Height,
                 NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
             NativeMethods.ShowWindow(Handle, NativeMethods.SW_SHOWNOACTIVATE);
-            Log.Info("壁纸窗口已挂载到桌面 (WorkerW=" + (workerw != IntPtr.Zero) + ", parent=" + NativeMethods.GetParent(Handle) + ")");
+            Log.Info("壁纸窗口已挂载到桌面 (raised=" + desktop.Raised + ", parent=" + NativeMethods.GetParent(Handle) + ")");
             return true;
         }
 

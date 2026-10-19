@@ -13,6 +13,10 @@ namespace DeskFlow
         public const int WS_EX_NOACTIVATE = 0x08000000;
         public const int WS_EX_APPWINDOW = 0x00040000;
         public const int WS_EX_LAYERED = 0x00080000;
+        public const int WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
+        public const int WS_CHILD = 0x40000000;
+        public const int WS_POPUP = unchecked((int)0x80000000);
+        public const uint LWA_ALPHA = 0x00000002;
 
         public const int SW_HIDE = 0;
         public const int SW_SHOWNOACTIVATE = 4;
@@ -93,6 +97,9 @@ namespace DeskFlow
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte bAlpha, uint dwFlags);
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
@@ -192,30 +199,57 @@ namespace DeskFlow
 
         public static IntPtr FindDesktopWorkerW(out IntPtr progman)
         {
-            progman = FindWindow("Progman", null);
-            IntPtr workerw = IntPtr.Zero;
+            DesktopTarget target = FindDesktopTarget();
+            progman = target.Progman;
+            return target.WorkerW;
+        }
 
-            if (progman != IntPtr.Zero)
+        public struct DesktopTarget
+        {
+            public IntPtr Progman;
+            public IntPtr WorkerW;
+            public IntPtr DefView;
+            public bool Raised;
+        }
+
+        public static DesktopTarget FindDesktopTarget()
+        {
+            DesktopTarget target = new DesktopTarget();
+            target.Progman = FindWindow("Progman", null);
+            if (target.Progman == IntPtr.Zero) return target;
+
+            // Ask Explorer to spawn the WorkerW that sits behind the desktop icons.
+            IntPtr result;
+            SendMessageTimeout(target.Progman, 0x052C, new IntPtr(0xD), new IntPtr(0x1),
+                SMTO_ABORTIFHUNG, 1000, out result);
+
+            target.DefView = FindWindowEx(target.Progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+            int exStyle = GetWindowLong(target.Progman, GWL_EXSTYLE);
+            target.Raised = (exStyle & WS_EX_NOREDIRECTIONBITMAP) != 0;
+
+            if (target.Raised)
             {
-                IntPtr result;
-                // Ask Explorer to spawn the WorkerW that sits behind the desktop icons.
-                SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, SMTO_ABORTIFHUNG, 1000, out result);
+                // Windows 11 "raised desktop": Wallpaper is a child WorkerW under
+                // Progman, with the layered DefView above it.
+                target.WorkerW = FindWindowEx(target.Progman, IntPtr.Zero, "WorkerW", null);
+                if (target.DefView == IntPtr.Zero)
+                    target.DefView = FindWindowEx(target.Progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+                return target;
             }
 
             EnumWindows(delegate(IntPtr hWnd, IntPtr lParam)
             {
-                if (FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero)
+                IntPtr defView = FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", null);
+                if (defView != IntPtr.Zero)
                 {
+                    target.DefView = defView;
                     IntPtr candidate = FindWindowEx(IntPtr.Zero, hWnd, "WorkerW", null);
-                    if (candidate != IntPtr.Zero)
-                    {
-                        workerw = candidate;
-                    }
+                    if (candidate != IntPtr.Zero) target.WorkerW = candidate;
                 }
                 return true;
             }, IntPtr.Zero);
 
-            return workerw;
+            return target;
         }
 
         public static List<IntPtr> FindTaskbars()
