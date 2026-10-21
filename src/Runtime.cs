@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Reflection;
 using System.Diagnostics;
+using System.Text;
 
 namespace DeskFlow
 {
@@ -15,8 +16,14 @@ namespace DeskFlow
 
     internal static class Runtime
     {
+#if SLIM_RUNTIME
+        public const string PayloadVersion = "vlc-3.0.21-slim2";
+#else
         public const string PayloadVersion = "vlc-3.0.21";
+#endif
         public const string ResourceName = "DeskFlow.Payload.runtime.zip";
+
+        public static Exception LastError { get; private set; }
 
         private static string _baseDir;
 
@@ -190,9 +197,34 @@ namespace DeskFlow
             }
             catch (Exception ex)
             {
-                error = ex.Message;
+                LastError = ex;
+                error = ex.GetType().Name + ": " + ex.Message;
                 Log.Error("释放播放引擎失败", ex);
+                WriteFailureLog(ex);
                 return false;
+            }
+        }
+
+        private static void WriteFailureLog(Exception ex)
+        {
+            string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")
+                + " runtime=" + RuntimeDir
+                + Environment.NewLine + ex.ToString()
+                + Environment.NewLine;
+            string[] candidates = new string[]
+            {
+                Path.Combine(Path.GetTempPath(), "DeskFlow-error.log"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DeskFlow-error.log"),
+                Path.Combine(BaseDirectory, "DeskFlow-error.log")
+            };
+            foreach (string path in candidates)
+            {
+                try
+                {
+                    File.AppendAllText(path, line, Encoding.UTF8);
+                    return;
+                }
+                catch { }
             }
         }
 

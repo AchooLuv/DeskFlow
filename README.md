@@ -59,7 +59,7 @@ DeskFlow 是一个**轻量、开源、免费的 Windows 10/11 动态壁纸引擎
 - **`DeskFlow.exe`**：单文件便携版，内置 VLC 播放引擎，推荐。
 - **`DeskFlow-*-win64.zip`**：含程序、README、许可文件与截图的便携包。
 
-首次启动会把内置播放组件释放到 `%LOCALAPPDATA%\DeskFlow\runtime\vlc-3.0.21`，约 136 MB；之后启动无需等待。如果该目录不可写，会自动回退到 `%TEMP%\DeskFlow`。
+首次启动会把内置播放组件释放到 `%LOCALAPPDATA%\DeskFlow\runtime\vlc-3.0.21-slim2`，约 40 MB；之后启动无需等待。如果该目录不可写，会自动回退到用户数据目录或 `%TEMP%\DeskFlow`。
 
 程序未购买代码签名证书，Windows SmartScreen 可能提示“未知发布者”。请核对 Releases 页面或 `RELEASE_NOTES.md` 中的 SHA-256 后运行。
 
@@ -132,7 +132,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 输出：
 
 - `build\DeskFlow.exe`：单文件可执行程序。
-- `build\DeskFlow-1.0.3-win64.zip`：含程序、README 与许可文件的便携包。
+- `build\DeskFlow-1.0.4-win64.zip`：含程序、README 与许可文件的便携包。
+
+### 精简构建
+
+如果只需要本地视频播放，可以构建精简版；它会按 `assets\runtime-plugins-slim.txt` 只打包必要的 VLC 插件，去掉 VLC GUI、编码器、串流、可视化和网络访问插件：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File build-slim.ps1
+```
+
+输出：
+
+- `build\DeskFlow-slim.exe`：约 19 MB。
+- `build\DeskFlow-1.0.4-slim-win64.zip`：约 19 MB 的便携包。
+- 首次启动释放的 runtime 约 40 MB。
+
+已测试的格式包括 MKV、MP4、AVI、MOV、WMV、WEBM，以及 H.264、HEVC、AV1、VP8、VP9、MPEG-2 编码。完整版 `build.ps1` 保留作为兼容性兜底。
 
 ## 已知限制
 

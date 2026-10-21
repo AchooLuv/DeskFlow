@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Security.Principal;
 
 namespace DeskFlow
 {
@@ -26,7 +27,23 @@ namespace DeskFlow
                 }
                 else
                 {
-                    _dataDirectory = Path.Combine(Path.GetTempPath(), "DeskFlow");
+                    // If the normal data folder was created by an elevated run,
+                    // its ACL can reject a later non-elevated process. Try a
+                    // per-user sibling under LocalAppData before falling back
+                    // to the shared temp folder.
+                    string sid = "user";
+                    try { sid = WindowsIdentity.GetCurrent().User.Value; } catch { }
+                    string userFallback = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "DeskFlow-" + sid);
+                    if (CanWrite(userFallback))
+                    {
+                        _dataDirectory = userFallback;
+                    }
+                    else
+                    {
+                        _dataDirectory = Path.Combine(Path.GetTempPath(), "DeskFlow");
+                    }
                     Log.Warn("本地应用数据目录不可写，改用 " + _dataDirectory);
                 }
                 return _dataDirectory;

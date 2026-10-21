@@ -78,12 +78,9 @@ namespace DeskFlow
                         if (prepare.ShowDialog() != DialogResult.OK) return;
                     }
                 }
-                else
-                {
-                    Runtime.DeleteOldPayloads();
-                }
+                Runtime.DeleteOldPayloads();
 
-                Log.Info("DeskFlow 启动，版本 1.0.3");
+                Log.Info("DeskFlow 启动，版本 1.0.4");
                 Application.Run(new TrayContext(startHidden));
             }
             catch (Exception ex)
