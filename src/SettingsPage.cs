@@ -15,6 +15,7 @@ namespace DeskFlow
         private readonly SettingRow _taskbarRow;
         private readonly SettingRow _trayRow;
         private readonly SettingRow _autostartRow;
+        private readonly SettingRow _switchModeRow;
         private readonly SettingRow _fullscreenRow;
         private readonly SettingRow _batteryRow;
         private readonly Label _versionLabel;
@@ -74,7 +75,7 @@ namespace DeskFlow
             _autostartRow = new SettingRow
             {
                 Title = "开机自动启动",
-                Description = "登录 Windows 后自动恢复壁纸"
+                Description = "登录时提前启动，桌面出现前恢复壁纸（首次需管理员授权）"
             };
             _autostartRow.Checked = settings.AutoStart;
             _autostartRow.CheckedChanged += delegate
@@ -84,6 +85,20 @@ namespace DeskFlow
                 RaiseChanged();
             };
             _appearanceCard.Controls.Add(_autostartRow);
+
+            _switchModeRow = new SettingRow
+            {
+                Title = "点击菜单直接切换壁纸",
+                Description = "关闭后点击只打开页面，由“应用为壁纸”切换"
+            };
+            _switchModeRow.Checked = settings.SwitchModeOnNavClick;
+            _switchModeRow.CheckedChanged += delegate
+            {
+                if (_updating) return;
+                _settings.SwitchModeOnNavClick = _switchModeRow.Checked;
+                RaiseChanged();
+            };
+            _appearanceCard.Controls.Add(_switchModeRow);
 
             _performanceCard = Ui.Card(Theme.Background);
             Controls.Add(_performanceCard);
@@ -129,7 +144,7 @@ namespace DeskFlow
             aboutTitle.SetBounds(18, 14, 220, 24);
             _aboutCard.Controls.Add(aboutTitle);
 
-            _versionLabel = Ui.Label("DeskFlow 1.0.4", Theme.BodyBold, Theme.Text, Theme.Card);
+            _versionLabel = Ui.Label("DeskFlow 1.0.5", Theme.BodyBold, Theme.Text, Theme.Card);
             _versionLabel.SetBounds(18, 46, 240, 22);
             _aboutCard.Controls.Add(_versionLabel);
 
@@ -201,6 +216,7 @@ namespace DeskFlow
                 _settings.TaskbarTransparent = defaults.TaskbarTransparent;
                 _settings.MinimizeToTray = defaults.MinimizeToTray;
                 _settings.AutoStart = defaults.AutoStart;
+                _settings.SwitchModeOnNavClick = defaults.SwitchModeOnNavClick;
                 _settings.PauseFullscreen = defaults.PauseFullscreen;
                 _settings.PauseOnBattery = defaults.PauseOnBattery;
                 ApplySettingsToControls();
@@ -222,6 +238,7 @@ namespace DeskFlow
             _taskbarRow.Checked = _settings.TaskbarTransparent;
             _trayRow.Checked = _settings.MinimizeToTray;
             _autostartRow.Checked = _settings.AutoStart;
+            _switchModeRow.Checked = _settings.SwitchModeOnNavClick;
             _fullscreenRow.Checked = _settings.PauseFullscreen;
             _batteryRow.Checked = _settings.PauseOnBattery;
             _updating = false;
@@ -234,7 +251,7 @@ namespace DeskFlow
             int top = ContentTop;
             int gap = 16;
             int column = (inner - gap) / 2;
-            const int cardHeight = 228;
+            const int cardHeight = 292;
 
             _appearanceCard.SetBounds(margin, top, column, cardHeight);
             _performanceCard.SetBounds(margin + column + gap, top, column, cardHeight);
@@ -243,6 +260,7 @@ namespace DeskFlow
             _taskbarRow.SetBounds(16, 44, rowWidth, 58);
             _trayRow.SetBounds(16, 106, rowWidth, 58);
             _autostartRow.SetBounds(16, 168, rowWidth, 58);
+            _switchModeRow.SetBounds(16, 230, rowWidth, 58);
 
             _fullscreenRow.SetBounds(16, 44, rowWidth, 58);
             _batteryRow.SetBounds(16, 106, rowWidth, 58);

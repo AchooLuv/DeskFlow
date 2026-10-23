@@ -143,7 +143,7 @@ namespace DeskFlow
             _statusPerf.SetBounds(12, 78, 158, 18);
             _statusCard.Controls.Add(_statusPerf);
 
-            _version = Ui.Label("v1.0.4  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
+            _version = Ui.Label("v1.0.5  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
             _version.SetBounds(16, 0, 180, 18);
             _sidebar.Controls.Add(_version);
 
@@ -178,6 +178,14 @@ namespace DeskFlow
                 ShowToast("已刷新图片列表");
                 RefreshUi();
             };
+            _slideshowPage.ApplyRequested += delegate
+            {
+                if (_settings.Mode == "slideshow") return;
+                _settings.Mode = "slideshow";
+                _context.OnSettingsChanged();
+                ShowToast("已切换到图片轮播");
+                RefreshUi();
+            };
 
             _videoPage.Changed += delegate { _context.OnSettingsChanged(); };
             _videoPage.TogglePauseRequested += delegate
@@ -189,6 +197,14 @@ namespace DeskFlow
             {
                 _controller.Apply(_settings, true);
                 ShowToast("视频已重新开始");
+                RefreshUi();
+            };
+            _videoPage.ApplyRequested += delegate
+            {
+                if (_settings.Mode == "video") return;
+                _settings.Mode = "video";
+                _context.OnSettingsChanged();
+                ShowToast("已切换到动态壁纸");
                 RefreshUi();
             };
 
@@ -298,7 +314,7 @@ namespace DeskFlow
             _settings.LastPage = index;
 
             bool modeChanged = false;
-            if (activateMode)
+            if (activateMode && _settings.SwitchModeOnNavClick)
             {
                 if (index == 0 && _settings.Mode != "slideshow"
                     && !string.IsNullOrEmpty(_settings.ImageFolder)

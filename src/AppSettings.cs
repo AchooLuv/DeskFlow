@@ -18,6 +18,7 @@ namespace DeskFlow
         public bool TaskbarTransparent { get; set; }
         public bool MinimizeToTray { get; set; }
         public bool AutoStart { get; set; }
+        public bool SwitchModeOnNavClick { get; set; }
         public bool PauseFullscreen { get; set; }
         public bool PauseOnBattery { get; set; }
         public int LastPage { get; set; }
@@ -36,6 +37,7 @@ namespace DeskFlow
             TaskbarTransparent = true;
             MinimizeToTray = true;
             AutoStart = false;
+            SwitchModeOnNavClick = false;
             PauseFullscreen = true;
             PauseOnBattery = false;
             LastPage = 0;

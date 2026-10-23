@@ -26,6 +26,7 @@ namespace DeskFlow
         private readonly Chip[] _chips;
         private readonly UiButton _choose;
         private readonly UiButton _refresh;
+        private readonly UiButton _apply;
         private readonly UiButton _pause;
         private readonly UiButton _next;
         private bool _updating;
@@ -34,6 +35,7 @@ namespace DeskFlow
         public event Action TogglePauseRequested;
         public event Action NextRequested;
         public event Action RefreshRequested;
+        public event Action ApplyRequested;
 
         public SlideshowPage(AppSettings settings)
         {
@@ -165,6 +167,14 @@ namespace DeskFlow
             _statusDetail.AutoEllipsis = true;
             _actionCard.Controls.Add(_statusDetail);
 
+            _apply = new UiButton { Text = "应用轮播", Style = UiButtonStyle.Primary, Width = 104, Height = 38 };
+            _apply.Click += delegate
+            {
+                Action handler = ApplyRequested;
+                if (handler != null) handler();
+            };
+            _actionCard.Controls.Add(_apply);
+
             _pause = new UiButton { Text = "暂停轮播", Style = UiButtonStyle.Soft, Width = 112, Height = 38 };
             _pause.Click += delegate
             {
@@ -281,6 +291,8 @@ namespace DeskFlow
             _pause.Enabled = enabled && count > 0;
             _next.Enabled = enabled && count > 0;
             _refresh.Enabled = enabled && hasFolder;
+            _apply.Visible = !enabled && hasFolder && count > 0;
+            _apply.Enabled = _apply.Visible;
             _choose.Text = hasFolder ? "更换文件夹" : "选择文件夹";
             LayoutPage();
         }
@@ -315,12 +327,14 @@ namespace DeskFlow
             int actionCenter = _actionCard.Height / 2;
             _statusTitle.Top = actionCenter - 24;
             _statusDetail.Top = actionCenter + 1;
+            _apply.Top = actionCenter - 19;
             _pause.Top = actionCenter - 19;
             _next.Top = actionCenter - 19;
+            _apply.SetBounds(_actionCard.Width - 340, actionCenter - 19, 104, 38);
             _pause.SetBounds(_actionCard.Width - 226, actionCenter - 19, 112, 38);
             _next.SetBounds(_actionCard.Width - 104, actionCenter - 19, 92, 38);
-            _statusDetail.Width = Math.Max(180, _actionCard.Width - 260);
-            _statusTitle.Width = Math.Max(180, _actionCard.Width - 260);
+            _statusDetail.Width = Math.Max(180, _actionCard.Width - 382);
+            _statusTitle.Width = Math.Max(180, _actionCard.Width - 382);
 
             _shuffle.Location = new Point(sideWidth - 58, 201);
             _intervalUnit.Left = 156;

@@ -26,6 +26,8 @@ namespace DeskFlow
         private bool _exiting;
         private bool _fullscreenPaused;
         private bool _batteryPaused;
+        private bool _autoStartChecked;
+        private bool _autoStartValue;
         private DateTime _lastBatteryCheck = DateTime.MinValue;
 
         public static readonly uint TaskbarCreatedMessage = NativeMethods.RegisterWindowMessage("TaskbarCreated");
@@ -169,13 +171,30 @@ namespace DeskFlow
 
         private void EnsureAutoStart()
         {
+            if (_autoStartChecked && _autoStartValue == _settings.AutoStart)
+                return;
+            _autoStartChecked = true;
+            _autoStartValue = _settings.AutoStart;
+
             try
             {
+                bool early = false;
+                if (_settings.AutoStart)
+                {
+                    early = LogonTask.ExistsFor(Application.ExecutablePath);
+                    if (!early)
+                    {
+                        early = LogonTask.Create(Application.ExecutablePath);
+                        if (!early)
+                            Log.Warn("登录计划任务创建失败，回退到普通开机启动。");
+                    }
+                }
+
                 using (RegistryKey key = Registry.CurrentUser.OpenSubKey(
                     @"Software\Microsoft\Windows\CurrentVersion\Run", true))
                 {
                     if (key == null) return;
-                    if (_settings.AutoStart)
+                    if (_settings.AutoStart && !early)
                     {
                         string command = "\"" + Application.ExecutablePath + "\" --autostart";
                         object current = key.GetValue("DeskFlow");
@@ -187,6 +206,9 @@ namespace DeskFlow
                         if (key.GetValue("DeskFlow") != null) key.DeleteValue("DeskFlow", false);
                     }
                 }
+
+                if (!_settings.AutoStart && LogonTask.Exists())
+                    LogonTask.Delete();
             }
             catch (Exception ex)
             {

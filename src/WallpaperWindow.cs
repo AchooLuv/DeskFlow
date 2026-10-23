@@ -10,6 +10,7 @@ namespace DeskFlow
         private readonly Panel _videoHost;
         private Bitmap _image;
         private IntPtr _desktopParent;
+        private bool _waitLogged;
 
         public WallpaperWindow()
         {
@@ -72,15 +73,30 @@ namespace DeskFlow
         {
             if (!IsHandleCreated) CreateHandle();
             NativeMethods.DesktopTarget desktop = NativeMethods.FindDesktopTarget();
-            IntPtr target = desktop.Raised ? desktop.Progman : desktop.WorkerW;
-            if (target == IntPtr.Zero) target = desktop.Progman;
-            if (target == IntPtr.Zero)
+
+            // At logon the shell may still be creating WorkerW. Keep the
+            // wallpaper hidden and wait instead of flashing a normal window
+            // on top of the desktop. On slow logons this can take a while.
+            if (!desktop.Raised && desktop.WorkerW == IntPtr.Zero)
             {
-                Log.Warn("未找到桌面 WorkerW / Progman，将使用普通窗口。");
-                NativeMethods.ShowWindow(Handle, NativeMethods.SW_SHOWNOACTIVATE);
+                if (!_waitLogged)
+                {
+                    _waitLogged = true;
+                    Log.Info("桌面尚未就绪，等待 WorkerW…");
+                }
+                NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
                 return false;
             }
 
+            IntPtr target = desktop.Raised ? desktop.Progman : desktop.WorkerW;
+            if (target == IntPtr.Zero)
+            {
+                Log.Warn("未找到桌面 WorkerW / Progman，壁纸窗口保持隐藏。");
+                NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
+                return false;
+            }
+
+            _waitLogged = false;
             _desktopParent = target;
             Log.Info("桌面挂载目标: progman=" + desktop.Progman + " workerw=" + desktop.WorkerW
                 + " defview=" + desktop.DefView + " raised=" + desktop.Raised + " target=" + target);

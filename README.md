@@ -27,7 +27,7 @@ DeskFlow 是一个**轻量、开源、免费的 Windows 10/11 动态壁纸引擎
 - 直接选择一个图片文件夹作为轮播源，自动识别图片；支持刷新列表。
 - 图片按“填满屏幕”方式缩放，保留原始比例并居中裁切。
 - 支持 JPEG EXIF 方向自动纠正；系统没有 WebP 解码器时由内置 `dwebp` 解码。
-- 已配置图片和视频后，直接点击左侧“图片轮播 / 动态壁纸”即可切换，不需要重新选择文件。
+- 默认点击左侧“图片轮播 / 动态壁纸”只打开页面，不会立刻切换壁纸；使用页面内的“应用为壁纸”按钮切换。可在设置中开启“点击菜单直接切换壁纸”。
 
 ### 视频动态壁纸
 
@@ -49,7 +49,7 @@ DeskFlow 是一个**轻量、开源、免费的 Windows 10/11 动态壁纸引擎
 - 使用电池时可自动暂停，延长续航。
 - 锁屏时暂停，解锁后恢复。
 - 关闭窗口默认最小化到托盘；托盘菜单可暂停、下一张、切换任务栏透明或退出。
-- 可选开机自动启动。
+- 可选开机自动启动；启用后使用登录计划任务，在桌面出现前启动并挂载壁纸（首次启用需要管理员授权）。
 - 单实例运行；重复启动会唤醒已经运行的 DeskFlow。
 
 ## 下载与安装
@@ -68,7 +68,7 @@ DeskFlow 是一个**轻量、开源、免费的 Windows 10/11 动态壁纸引擎
 1. 双击 `DeskFlow.exe`。
 2. **图片轮播**：选择图片文件夹，设置间隔；壁纸立即开始轮播。
 3. **动态壁纸**：选择视频，调整倍率、音量或循环；壁纸立即播放。
-4. 已配置两种壁纸后，直接点击左侧“图片轮播 / 动态壁纸”切换。
+4. 已配置两种壁纸后，点击左侧“图片轮播 / 动态壁纸”打开对应页面，再点“应用为壁纸”切换；也可在设置里开启点击直接切换。
 5. 关闭窗口后程序仍在托盘运行。右键托盘图标可以暂停、下一张或退出。
 
 设置保存在 `%APPDATA%\DeskFlow\settings.json`，日志在 `%LOCALAPPDATA%\DeskFlow\DeskFlow.log`。
@@ -132,7 +132,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 输出：
 
 - `build\DeskFlow.exe`：单文件可执行程序。
-- `build\DeskFlow-1.0.4-win64.zip`：含程序、README 与许可文件的便携包。
+- `build\DeskFlow-1.0.5-win64.zip`：含程序、README 与许可文件的便携包。
 
 ### 精简构建
 
@@ -145,7 +145,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build-slim.ps1
 输出：
 
 - `build\DeskFlow-slim.exe`：约 19 MB。
-- `build\DeskFlow-1.0.4-slim-win64.zip`：约 19 MB 的便携包。
+- `build\DeskFlow-1.0.5-slim-win64.zip`：约 19 MB 的便携包。
 - 首次启动释放的 runtime 约 40 MB。
 
 已测试的格式包括 MKV、MP4、AVI、MOV、WMV、WEBM，以及 H.264、HEVC、AV1、VP8、VP9、MPEG-2 编码。完整版 `build.ps1` 保留作为兼容性兜底。

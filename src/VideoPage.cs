@@ -26,6 +26,7 @@ namespace DeskFlow
         private readonly ModernSlider _volume;
         private readonly ToggleSwitch _loop;
         private readonly UiButton _choose;
+        private readonly UiButton _apply;
         private readonly UiButton _pause;
         private readonly UiButton _restart;
         private bool _updating;
@@ -33,6 +34,7 @@ namespace DeskFlow
         public event Action Changed;
         public event Action TogglePauseRequested;
         public event Action RestartRequested;
+        public event Action ApplyRequested;
 
         public VideoPage(AppSettings settings)
         {
@@ -146,6 +148,14 @@ namespace DeskFlow
             _statusDetail.AutoEllipsis = true;
             _actionCard.Controls.Add(_statusDetail);
 
+            _apply = new UiButton { Text = "应用视频", Style = UiButtonStyle.Primary, Width = 104, Height = 38 };
+            _apply.Click += delegate
+            {
+                Action handler = ApplyRequested;
+                if (handler != null) handler();
+            };
+            _actionCard.Controls.Add(_apply);
+
             _pause = new UiButton { Text = "暂停播放", Style = UiButtonStyle.Soft, Width = 104, Height = 38 };
             _pause.Click += delegate
             {
@@ -254,6 +264,8 @@ namespace DeskFlow
             _pause.Text = paused ? "继续播放" : "暂停播放";
             _pause.Enabled = active;
             _restart.Enabled = enabled && hasFile;
+            _apply.Visible = !enabled && hasFile;
+            _apply.Enabled = _apply.Visible;
             _choose.Text = hasFile ? "更换视频" : "选择视频";
             LayoutPage();
         }
@@ -287,10 +299,11 @@ namespace DeskFlow
             int actionCenter = _actionCard.Height / 2;
             _statusTitle.Top = actionCenter - 24;
             _statusDetail.Top = actionCenter + 1;
+            _apply.SetBounds(_actionCard.Width - 340, actionCenter - 19, 104, 38);
             _pause.SetBounds(_actionCard.Width - 226, actionCenter - 19, 104, 38);
             _restart.SetBounds(_actionCard.Width - 114, actionCenter - 19, 104, 38);
-            _statusTitle.Width = Math.Max(180, _actionCard.Width - 260);
-            _statusDetail.Width = Math.Max(180, _actionCard.Width - 260);
+            _statusTitle.Width = Math.Max(180, _actionCard.Width - 382);
+            _statusDetail.Width = Math.Max(180, _actionCard.Width - 382);
         }
     }
 }
