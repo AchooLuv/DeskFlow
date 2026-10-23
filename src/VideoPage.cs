@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace DeskFlow
@@ -30,6 +31,11 @@ namespace DeskFlow
         private readonly UiButton _pause;
         private readonly UiButton _restart;
         private bool _updating;
+        private string _thumbPath;
+        private string _thumbTriedPath;
+        private Bitmap _thumbBitmap;
+        private bool _thumbLoading;
+        private int _thumbGeneration;
 
         public event Action Changed;
         public event Action TogglePauseRequested;
@@ -220,18 +226,24 @@ namespace DeskFlow
             bool active = enabled && controller.IsVideoActive;
             bool paused = controller.IsPaused;
 
+            Bitmap preview = enabled ? controller.VideoCover : null;
+            if (preview == null && hasFile) preview = GetThumbnail();
             _preview.VideoMode = true;
             _preview.Glyph = "\uE714";
-            _preview.PreviewImage = enabled ? controller.VideoCover : null;
+            _preview.PreviewImage = preview;
 
             if (!enabled)
             {
-                _preview.Badge = "未启用";
-                _preview.BadgeColor = Theme.TextDim;
-                _preview.Title = "动态壁纸";
-                _preview.Subtitle = "选择一个视频文件开始播放";
-                _statusTitle.Text = "动态壁纸未启用";
-                _statusDetail.Text = "VLC 播放引擎支持常见视频格式，并优先使用硬件解码。";
+                _preview.Badge = hasFile ? "已选择" : "未启用";
+                _preview.BadgeColor = hasFile ? Theme.Accent : Theme.TextDim;
+                _preview.Title = hasFile ? Path.GetFileName(_settings.VideoPath) : "动态壁纸";
+                _preview.Subtitle = hasFile
+                    ? "点击“应用视频”开始播放"
+                    : "选择一个视频文件开始播放";
+                _statusTitle.Text = hasFile ? "已选择视频文件" : "动态壁纸未启用";
+                _statusDetail.Text = hasFile
+                    ? "点击“应用视频”开始播放。"
+                    : "VLC 播放引擎支持常见视频格式，并优先使用硬件解码。";
             }
             else if (!hasFile)
             {
@@ -268,6 +280,47 @@ namespace DeskFlow
             _apply.Enabled = _apply.Visible;
             _choose.Text = hasFile ? "更换视频" : "选择视频";
             LayoutPage();
+        }
+
+        private Bitmap GetThumbnail()
+        {
+            string path = _settings.VideoPath;
+            if (string.IsNullOrEmpty(path)) return null;
+            if (string.Equals(_thumbPath, path, StringComparison.OrdinalIgnoreCase))
+            {
+                if (_thumbBitmap != null) return _thumbBitmap;
+                if (_thumbLoading || string.Equals(_thumbTriedPath, path, StringComparison.OrdinalIgnoreCase))
+                    return null;
+            }
+
+            _preview.PreviewImage = null;
+            if (_thumbBitmap != null)
+            {
+                try { _thumbBitmap.Dispose(); } catch { }
+                _thumbBitmap = null;
+            }
+            _thumbPath = path;
+            _thumbTriedPath = path;
+            _thumbLoading = true;
+            int generation = ++_thumbGeneration;
+            Task.Run(delegate { return ThumbnailLoader.Load(path, 640, 360); })
+                .ContinueWith(delegate(Task<Bitmap> task)
+                {
+                    Bitmap bitmap = task.Result;
+                    if (IsDisposed || generation != _thumbGeneration)
+                    {
+                        if (bitmap != null) bitmap.Dispose();
+                        return;
+                    }
+                    _thumbLoading = false;
+                    if (bitmap != null)
+                    {
+                        _thumbBitmap = bitmap;
+                        _preview.PreviewImage = bitmap;
+                        _preview.Invalidate();
+                    }
+                }, TaskScheduler.FromCurrentSynchronizationContext());
+            return null;
         }
 
         protected override void LayoutPage()

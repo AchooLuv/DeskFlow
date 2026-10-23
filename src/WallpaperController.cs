@@ -42,20 +42,12 @@ namespace DeskFlow
                 if (_settings.Mode == "slideshow") RaiseState();
             };
 
-            _maintenance = new Timer { Interval = _desktopAttachFailed ? 1000 : 4000 };
+            _maintenance = new Timer { Interval = 4000 };
             _maintenance.Tick += delegate { Maintain(); };
             _maintenance.Start();
 
             _coverTimer = new Timer { Interval = 900 };
             _coverTimer.Tick += delegate { CaptureVideoCover(); };
-
-            // At logon we may be waiting for WorkerW. Load VLC now so the
-            // first frame is ready as soon as the desktop appears.
-            if (_settings.Mode == "video" && File.Exists(_settings.VideoPath))
-            {
-                _vlc = new VlcPlayer();
-                _vlc.Preload();
-            }
 
             Apply(_settings, true);
         }
@@ -95,16 +87,6 @@ namespace DeskFlow
             bool videoChanged = !string.Equals(previousVideo, _settings.VideoPath, StringComparison.OrdinalIgnoreCase);
             bool loopChanged = previousLoop != _settings.Loop;
             if (modeChanged) _userPaused = false;
-
-            // A logon task can start us before Explorer has created WorkerW.
-            // Do not create a visible video window during that interval; wait
-            // for Maintain() to attach and re-apply.
-            if (!_window.IsAttached)
-            {
-                _videoActive = false;
-                _window.HideVideo();
-                return;
-            }
 
             if (_settings.Mode == "video")
             {
@@ -415,22 +397,11 @@ namespace DeskFlow
                 }
                 if (!_window.IsAttached)
                 {
-                    if ((DateTime.UtcNow - _lastAttachAttempt).TotalSeconds >= 1)
+                    if ((DateTime.UtcNow - _lastAttachAttempt).TotalSeconds >= 30)
                     {
                         _lastAttachAttempt = DateTime.UtcNow;
                         _desktopAttachFailed = !_window.AttachToDesktop();
-                        if (!_desktopAttachFailed)
-                        {
-                            _maintenance.Interval = 4000;
-                            Apply(_settings, true);
-                        }
                     }
-                }
-                else if (_desktopAttachFailed)
-                {
-                    _desktopAttachFailed = false;
-                    _maintenance.Interval = 4000;
-                    Apply(_settings, true);
                 }
             }
             catch (Exception ex)

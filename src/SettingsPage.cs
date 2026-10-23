@@ -75,7 +75,7 @@ namespace DeskFlow
             _autostartRow = new SettingRow
             {
                 Title = "开机自动启动",
-                Description = "登录时提前启动，桌面出现前恢复壁纸（首次需管理员授权）"
+                Description = "登录 Windows 后自动恢复壁纸"
             };
             _autostartRow.Checked = settings.AutoStart;
             _autostartRow.CheckedChanged += delegate
@@ -144,7 +144,7 @@ namespace DeskFlow
             aboutTitle.SetBounds(18, 14, 220, 24);
             _aboutCard.Controls.Add(aboutTitle);
 
-            _versionLabel = Ui.Label("DeskFlow 1.0.5", Theme.BodyBold, Theme.Text, Theme.Card);
+            _versionLabel = Ui.Label("DeskFlow 1.0.6", Theme.BodyBold, Theme.Text, Theme.Card);
             _versionLabel.SetBounds(18, 46, 240, 22);
             _aboutCard.Controls.Add(_versionLabel);
 

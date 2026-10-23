@@ -55,12 +55,6 @@ namespace DeskFlow
             }
         }
 
-        public void Preload()
-        {
-            try { EnsureInstance(); }
-            catch (Exception ex) { Log.Warn("预加载 VLC 失败: " + ex.Message); }
-        }
-
         private void EnsureInstance()
         {
             if (_instance != IntPtr.Zero) return;

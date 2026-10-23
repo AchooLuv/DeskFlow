@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -30,6 +31,11 @@ namespace DeskFlow
         private readonly UiButton _pause;
         private readonly UiButton _next;
         private bool _updating;
+        private string _scanFolder;
+        private DateTime _scanStamp;
+        private List<string> _scanFiles = new List<string>();
+        private string _previewPath;
+        private Bitmap _previewBitmap;
 
         public event Action Changed;
         public event Action TogglePauseRequested;
@@ -237,20 +243,28 @@ namespace DeskFlow
         {
             bool enabled = _settings.Mode == "slideshow";
             bool hasFolder = !string.IsNullOrEmpty(_settings.ImageFolder) && Directory.Exists(_settings.ImageFolder);
-            int count = controller.ImageCount;
+            List<string> files = hasFolder ? GetFolderFiles() : new List<string>();
+            int count = Math.Max(controller.ImageCount, files.Count);
+            Bitmap preview = enabled ? controller.CurrentImage : null;
+            if (preview == null && files.Count > 0) preview = GetPreview(files[0]);
             _statusDetail.ForeColor = Theme.TextMuted;
-            _preview.PreviewImage = enabled ? controller.CurrentImage : null;
+            _preview.PreviewImage = preview;
             _preview.VideoMode = false;
             _preview.Glyph = "\uE91B";
 
             if (!enabled)
             {
-                _preview.Badge = "未启用";
-                _preview.BadgeColor = Theme.TextDim;
-                _preview.Title = "图片轮播";
-                _preview.Subtitle = "选择文件夹后开始轮播";
-                _statusTitle.Text = "尚未启用图片轮播";
-                _statusDetail.Text = "选择一个文件夹，DeskFlow 会自动识别 JPG、PNG、WebP 等图片。";
+                bool ready = hasFolder && count > 0;
+                _preview.Badge = ready ? "已选择" : "未启用";
+                _preview.BadgeColor = ready ? Theme.Accent : Theme.TextDim;
+                _preview.Title = ready ? Path.GetFileName(files[0]) : "图片轮播";
+                _preview.Subtitle = ready
+                    ? count + " 张图片 · 点击“应用轮播”开始"
+                    : "选择文件夹后开始轮播";
+                _statusTitle.Text = ready ? "已选择图片文件夹" : "尚未启用图片轮播";
+                _statusDetail.Text = ready
+                    ? "点击“应用轮播”开始轮播。"
+                    : "选择一个文件夹，DeskFlow 会自动识别 JPG、PNG、WebP 等图片。";
                 _pause.Text = "暂停轮播";
             }
             else if (!hasFolder)
@@ -295,6 +309,40 @@ namespace DeskFlow
             _apply.Enabled = _apply.Visible;
             _choose.Text = hasFolder ? "更换文件夹" : "选择文件夹";
             LayoutPage();
+        }
+
+        private List<string> GetFolderFiles()
+        {
+            string folder = _settings.ImageFolder ?? string.Empty;
+            DateTime stamp = DateTime.MinValue;
+            try { if (Directory.Exists(folder)) stamp = Directory.GetLastWriteTimeUtc(folder); } catch { }
+            if (!string.Equals(_scanFolder, folder, StringComparison.OrdinalIgnoreCase)
+                || _scanStamp != stamp)
+            {
+                _scanFolder = folder;
+                _scanStamp = stamp;
+                _scanFiles = ImageLoader.ScanFolder(folder);
+            }
+            return _scanFiles;
+        }
+
+        private Bitmap GetPreview(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            if (string.Equals(_previewPath, path, StringComparison.OrdinalIgnoreCase)
+                && _previewBitmap != null)
+                return _previewBitmap;
+
+            _preview.PreviewImage = null;
+            if (_previewBitmap != null)
+            {
+                try { _previewBitmap.Dispose(); } catch { }
+                _previewBitmap = null;
+            }
+            string error;
+            _previewBitmap = ImageLoader.LoadForSize(path, 640, 360, out error);
+            _previewPath = _previewBitmap != null ? path : null;
+            return _previewBitmap;
         }
 
         public void ShowFolderEmptyHint()
