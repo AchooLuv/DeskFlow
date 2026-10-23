@@ -276,8 +276,9 @@ namespace DeskFlow
             _pause.Text = paused ? "继续播放" : "暂停播放";
             _pause.Enabled = active;
             _restart.Enabled = enabled && hasFile;
-            _apply.Visible = !enabled && hasFile;
-            _apply.Enabled = _apply.Visible;
+            bool canApply = !enabled && hasFile;
+            _apply.Visible = canApply;
+            _apply.Enabled = canApply;
             _choose.Text = hasFile ? "更换视频" : "选择视频";
             LayoutPage();
         }

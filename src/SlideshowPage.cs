@@ -305,8 +305,9 @@ namespace DeskFlow
             _pause.Enabled = enabled && count > 0;
             _next.Enabled = enabled && count > 0;
             _refresh.Enabled = enabled && hasFolder;
-            _apply.Visible = !enabled && hasFolder && count > 0;
-            _apply.Enabled = _apply.Visible;
+            bool canApply = !enabled && hasFolder && count > 0;
+            _apply.Visible = canApply;
+            _apply.Enabled = canApply;
             _choose.Text = hasFolder ? "更换文件夹" : "选择文件夹";
             LayoutPage();
         }
