@@ -9,7 +9,7 @@ $vlcSource = Join-Path $root '.cache\vlc\vlc-3.0.21'
 $dwebp = Join-Path $root 'assets\tools\dwebp.exe'
 $manifest = Join-Path $root 'assets\runtime-plugins-slim.txt'
 $framework = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
-$version = '1.0.7'
+$version = '1.0.8'
 
 foreach ($required in @($csc, (Join-Path $vlcSource 'libvlc.dll'), $dwebp, (Join-Path $root 'assets\app.ico'), $manifest)) {
   if (!(Test-Path $required)) { throw "Missing build dependency: $required" }

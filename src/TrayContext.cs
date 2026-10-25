@@ -20,6 +20,7 @@ namespace DeskFlow
         private readonly ToolStripMenuItem _taskbarItem;
         private readonly ToolStripMenuItem _exitItem;
         private readonly Timer _timer;
+        private readonly Timer _taskbarTimer;
         private readonly Timer _saveTimer;
         private readonly MessageWindow _messageWindow;
         private MainForm _form;
@@ -111,6 +112,16 @@ namespace DeskFlow
             _timer.Tick += delegate { OnTick(); };
             _timer.Start();
 
+            // Start menu and shell overlays can reset the taskbar's accent
+            // policy. Re-assert it independently of the slower UI timer.
+            _taskbarTimer = new Timer { Interval = 800 };
+            _taskbarTimer.Tick += delegate
+            {
+                if (_exiting) return;
+                try { TaskbarTransparency.ApplyIfNeeded(); } catch { }
+            };
+            _taskbarTimer.Start();
+
             _saveTimer = new Timer { Interval = 500 };
             _saveTimer.Tick += delegate
             {
@@ -197,7 +208,6 @@ namespace DeskFlow
         private void OnTick()
         {
             if (_exiting) return;
-            try { TaskbarTransparency.ApplyIfNeeded(); } catch { }
 
             bool fullscreen = _settings.PauseFullscreen && IsFullscreenAppActive();
             if (fullscreen != _fullscreenPaused)
@@ -334,6 +344,7 @@ namespace DeskFlow
             if (_exiting) return;
             _exiting = true;
             try { _timer.Stop(); } catch { }
+            try { _taskbarTimer.Stop(); } catch { }
             try { _saveTimer.Stop(); } catch { }
             try { _settings.Save(); } catch { }
             SystemEvents.SessionSwitch -= SystemEventsSessionSwitch;

@@ -38,10 +38,12 @@ namespace DeskFlow
         public static void ApplyIfNeeded()
         {
             if (!_enabled) return;
-            // Explorer recreates the taskbar at will. Re-assert the style, but only
-            // at a low frequency on Windows 11 where the shell tends to reset it.
-            if (!NativeMethods.IsWindows11 && (DateTime.UtcNow - _lastApply).TotalSeconds < 30) return;
-            if ((DateTime.UtcNow - _lastApply).TotalSeconds < 4) return;
+            // Start menu and other shell surfaces can reset the taskbar's
+            // accent policy. Re-assert it regularly instead of waiting 30s.
+            // Windows 11's DWM message is heavier, so use a slightly longer
+            // interval there.
+            double minimum = NativeMethods.IsWindows11 ? 2.0 : 0.6;
+            if ((DateTime.UtcNow - _lastApply).TotalSeconds < minimum) return;
             Apply(false);
         }
 
