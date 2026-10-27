@@ -27,6 +27,7 @@ namespace DeskFlow
         private bool _exiting;
         private bool _fullscreenPaused;
         private bool _batteryPaused;
+        private bool _shellOverlayOpen;
         private DateTime _lastBatteryCheck = DateTime.MinValue;
 
         public static readonly uint TaskbarCreatedMessage = NativeMethods.RegisterWindowMessage("TaskbarCreated");
@@ -114,11 +115,28 @@ namespace DeskFlow
 
             // Start menu and shell overlays can reset the taskbar's accent
             // policy. Re-assert it independently of the slower UI timer.
-            _taskbarTimer = new Timer { Interval = 800 };
+            _taskbarTimer = new Timer { Interval = 250 };
             _taskbarTimer.Tick += delegate
             {
                 if (_exiting) return;
-                try { TaskbarTransparency.ApplyIfNeeded(); } catch { }
+                try
+                {
+                    if (IsShellOverlayOpen())
+                    {
+                        _shellOverlayOpen = true;
+                        return;
+                    }
+                    if (_shellOverlayOpen)
+                    {
+                        _shellOverlayOpen = false;
+                        TaskbarTransparency.Apply(true);
+                    }
+                    else
+                    {
+                        TaskbarTransparency.ApplyIfNeeded();
+                    }
+                }
+                catch { }
             };
             _taskbarTimer.Start();
 
@@ -245,6 +263,34 @@ namespace DeskFlow
             _nextItem.Enabled = _settings.Mode == "slideshow" && _controller.ImageCount > 0;
             _taskbarItem.Checked = _settings.TaskbarTransparent;
             UpdateTrayText();
+        }
+
+        private bool IsShellOverlayOpen()
+        {
+            try
+            {
+                IntPtr foreground = NativeMethods.GetForegroundWindow();
+                if (foreground == IntPtr.Zero) return false;
+
+                StringBuilder cls = new StringBuilder(256);
+                NativeMethods.GetClassName(foreground, cls, cls.Capacity);
+                if (string.Equals(cls.ToString(), "Windows.UI.Core.CoreWindow",
+                    StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+                uint pid;
+                NativeMethods.GetWindowThreadProcessId(foreground, out pid);
+                if (pid == 0) return false;
+                string processName = Process.GetProcessById((int)pid).ProcessName;
+                return string.Equals(processName, "StartMenuExperienceHost", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(processName, "SearchApp", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(processName, "SearchHost", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(processName, "ShellExperienceHost", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private bool IsFullscreenAppActive()
