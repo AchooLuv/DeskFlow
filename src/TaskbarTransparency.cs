@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
 
 namespace DeskFlow
 {
@@ -9,7 +10,13 @@ namespace DeskFlow
         private static readonly object Sync = new object();
         private static readonly Dictionary<IntPtr, NativeMethods.AccentPolicy> Original =
             new Dictionary<IntPtr, NativeMethods.AccentPolicy>();
+        private const string AdvancedKey =
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced";
+        private const string OpacityValue = "TaskbarAcrylicOpacity";
         private static bool _enabled;
+        private static bool _opacityCaptured;
+        private static bool _opacityExisted;
+        private static object _opacityOriginal;
         private static DateTime _lastApply = DateTime.MinValue;
 
         public static bool Enabled
@@ -20,7 +27,11 @@ namespace DeskFlow
         public static void Initialize(bool enabled)
         {
             _enabled = enabled;
-            if (_enabled) Apply(true);
+            if (_enabled)
+            {
+                ApplyNativeOpacity();
+                Apply(true);
+            }
         }
 
         public static void SetEnabled(bool enabled)
@@ -31,8 +42,15 @@ namespace DeskFlow
                 return;
             }
             _enabled = enabled;
-            if (enabled) Apply(true);
-            else Restore();
+            if (enabled)
+            {
+                ApplyNativeOpacity();
+                Apply(true);
+            }
+            else
+            {
+                Restore();
+            }
         }
 
         public static void ApplyIfNeeded()
@@ -105,6 +123,7 @@ namespace DeskFlow
 
         public static void Restore()
         {
+            RestoreNativeOpacity();
             lock (Sync)
             {
                 foreach (KeyValuePair<IntPtr, NativeMethods.AccentPolicy> pair in Original)
@@ -121,6 +140,74 @@ namespace DeskFlow
                 Original.Clear();
                 Log.Info("已恢复任务栏样式");
             }
+        }
+
+        private static void ApplyNativeOpacity()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(AdvancedKey))
+                {
+                    if (key == null) return;
+                    if (!_opacityCaptured)
+                    {
+                        _opacityOriginal = key.GetValue(OpacityValue);
+                        _opacityExisted = _opacityOriginal != null;
+                        _opacityCaptured = true;
+                    }
+                    key.SetValue(OpacityValue, 0, RegistryValueKind.DWord);
+                }
+                BroadcastSettingsChange();
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("设置任务栏原生透明度失败: " + ex.Message);
+            }
+        }
+
+        private static void RestoreNativeOpacity()
+        {
+            if (!_opacityCaptured) return;
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(AdvancedKey, true))
+                {
+                    if (key != null)
+                    {
+                        if (_opacityExisted) key.SetValue(OpacityValue, _opacityOriginal);
+                        else key.DeleteValue(OpacityValue, false);
+                    }
+                }
+                BroadcastSettingsChange();
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("恢复任务栏原生透明度失败: " + ex.Message);
+            }
+            finally
+            {
+                _opacityCaptured = false;
+                _opacityOriginal = null;
+            }
+        }
+
+        private static void BroadcastSettingsChange()
+        {
+            try
+            {
+                IntPtr text = Marshal.StringToHGlobalUni("TraySettings");
+                try
+                {
+                    IntPtr result;
+                    NativeMethods.SendMessageTimeout(new IntPtr(0xFFFF), 0x001A,
+                        IntPtr.Zero, text, NativeMethods.SMTO_ABORTIFHUNG, 200, out result);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(text);
+                }
+            }
+            catch { }
         }
 
         private static bool TryGet(IntPtr hwnd, out NativeMethods.AccentPolicy policy)

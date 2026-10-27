@@ -1,23 +1,27 @@
-# DeskFlow v1.0.10
+# DeskFlow v1.0.11
 
-修复开始菜单打开期间任务栏不透明、以及反复重设造成的闪烁。
+改用 Windows 原生任务栏透明度设置，避免开始菜单反复重置导致的闪烁。
 
 ## 本版更新
 
-- **改为一次性恢复**：检测到开始菜单/搜索等 shell 面板打开后，不再每 0.8 秒持续覆盖，而是在面板出现后只应用一次任务栏样式；面板打开期间保持透明，不再反复闪烁。
-- 面板关闭时再恢复一次，覆盖 Windows shell 在关闭时可能做的重置。
-- **保留 v1.0.8 / v1.0.9 的普通场景校准**：非开始菜单场景下仍会低频检查任务栏，Explorer 重建后能自动恢复。
-- **保留 v1.0.7 的按钮修复**：“应用轮播 / 应用视频”可正常点击。
-- **保留 v1.0.6 的预览修复**：未启用时也显示已选图片/视频预览。
-- **保留默认行为**：“点击菜单直接切换壁纸”默认关闭。
-- **早期启动实验保持移除**：恢复普通 `HKCU\...\Run` 开机启动项。
+- **改用原生 `TaskbarAcrylicOpacity`**：Windows 10 支持在
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`
+  下设置 `TaskbarAcrylicOpacity = 0`，由 Explorer 直接使用，不再依赖每 0.8 秒调用
+  `SetWindowCompositionAttribute` 强制覆盖。
+- **移除任务栏定时重设**：不会再因为 Start 菜单和 DeskFlow 互相覆盖而闪烁。
+- 开启“任务栏完全透明”时写入原生透明度值；关闭或退出 DeskFlow 时恢复原值/删除该项。
+- 保留 `SetWindowCompositionAttribute` 作为即时生效和 Explorer 重建时的兼容处理。
+- 保留 v1.0.7 的按钮修复、v1.0.6 的预览修复、精简 runtime、普通权限启动修复。
+- 早期启动实验保持移除。
+
+> 如果首次开启后任务栏没有立即变化，重启一次 Explorer 或重新登录即可让原生设置生效；之后 Start 菜单不会反复改变它。
 
 ## 下载
 
 | 文件 | 说明 | SHA-256 |
 | --- | --- | --- |
-| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `3ACC5E0F9968B9EFE1396052B71260F69D1D2EAB51DCF65A45042237614CFDCD` |
-| `DeskFlow-1.0.10-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `FAD1EE7AB263F8182EC574B089813BA8EB4EA9E4C4639EAF7010CBB4DAB390EB` |
+| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `331ABF42CAFD73FAF981D97E3097AC8D1AC31A5CB3A8C86023DE0B1757F215AB` |
+| `DeskFlow-1.0.11-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `0A1CF200567220D13ACBA2C2755E678E7A8CD86AA3FDCCF3FE96783E55FC1406` |
 
 ## 系统要求
 
@@ -29,8 +33,8 @@
 ## 已知限制
 
 - 当前只把壁纸铺在主显示器；多显示器扩展桌面暂未支持。
-- 开始菜单的 shell 绘制本身不受 DeskFlow 控制；本版通过一次性重应用避免持续闪烁。
-- Windows 11 22H2（22621.1343）之后，微软限制了第三方程序修改任务栏背景。DeskFlow 会持续尝试完全透明样式；若系统接管绘制，任务栏会保持系统默认外观。
+- `TaskbarAcrylicOpacity` 依赖 Windows“透明效果”开启；如果系统设置关闭了透明效果，任务栏不会全透明。
+- Windows 11 22H2（22621.1343）之后，微软限制了第三方程序修改任务栏背景；若系统接管绘制，任务栏会保持系统默认外观。
 - 未购买代码签名证书，SmartScreen 可能提示“未知发布者”。请核对上面的 SHA-256。
 - 精简版不包含 VLC GUI、网络访问、蓝光和字幕相关插件；如果需要这些功能，请使用完整版构建 `build.ps1`。
 
