@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Win32;
 
 namespace DeskFlow
@@ -51,6 +53,7 @@ namespace DeskFlow
             {
                 Restore();
             }
+            RestartExplorer();
         }
 
         public static void ApplyIfNeeded()
@@ -142,6 +145,27 @@ namespace DeskFlow
             }
         }
 
+        private static void RestartExplorer()
+        {
+            try
+            {
+                foreach (Process process in Process.GetProcessesByName("explorer"))
+                {
+                    try { process.Kill(); } catch { }
+                }
+                Thread.Sleep(500);
+                if (Process.GetProcessesByName("explorer").Length == 0)
+                {
+                    Process.Start("explorer.exe");
+                }
+                Log.Info("已重启 Explorer 以应用任务栏设置");
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("重启 Explorer 失败: " + ex.Message);
+            }
+        }
+
         private static void ApplyNativeOpacity()
         {
             try
@@ -153,6 +177,13 @@ namespace DeskFlow
                     {
                         _opacityOriginal = key.GetValue(OpacityValue);
                         _opacityExisted = _opacityOriginal != null;
+                        // 0 is DeskFlow's own transparent value. Do not restore
+                        // it as the user's original value after a restart/crash.
+                        if (_opacityExisted && Convert.ToInt32(_opacityOriginal) == 0)
+                        {
+                            _opacityExisted = false;
+                            _opacityOriginal = null;
+                        }
                         _opacityCaptured = true;
                     }
                     key.SetValue(OpacityValue, 0, RegistryValueKind.DWord);

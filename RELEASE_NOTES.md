@@ -1,27 +1,23 @@
-# DeskFlow v1.0.11
+# DeskFlow v1.0.12
 
-改用 Windows 原生任务栏透明度设置，避免开始菜单反复重置导致的闪烁。
+修复关闭任务栏完全透明后，打开开始菜单又变透明的问题。
 
 ## 本版更新
 
-- **改用原生 `TaskbarAcrylicOpacity`**：Windows 10 支持在
-  `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`
-  下设置 `TaskbarAcrylicOpacity = 0`，由 Explorer 直接使用，不再依赖每 0.8 秒调用
-  `SetWindowCompositionAttribute` 强制覆盖。
-- **移除任务栏定时重设**：不会再因为 Start 菜单和 DeskFlow 互相覆盖而闪烁。
-- 开启“任务栏完全透明”时写入原生透明度值；关闭或退出 DeskFlow 时恢复原值/删除该项。
-- 保留 `SetWindowCompositionAttribute` 作为即时生效和 Explorer 重建时的兼容处理。
+- **关闭透明时重启 Explorer**：`TaskbarAcrylicOpacity` 由 Explorer 在启动时读取；只删除注册表值不会清掉正在运行的 Explorer 缓存，所以关闭后 Start 仍可能使用旧的 0 值。v1.0.12 在切换该设置时重启 Explorer，让新值立即生效。
+- **避免把 DeskFlow 自己的 0 当成用户原值**：之前如果注册表里已经是 0，关闭时会被当作“原值”恢复，导致继续透明。本版将 0 视为 DeskFlow 自身状态，关闭时直接删除/恢复默认。
+- **保留原生透明度实现**：开启时写入 `TaskbarAcrylicOpacity=0`，由 Explorer 直接使用，不再定时强制覆盖，因此 Start 打开时不会持续闪烁。
 - 保留 v1.0.7 的按钮修复、v1.0.6 的预览修复、精简 runtime、普通权限启动修复。
 - 早期启动实验保持移除。
 
-> 如果首次开启后任务栏没有立即变化，重启一次 Explorer 或重新登录即可让原生设置生效；之后 Start 菜单不会反复改变它。
+> 切换“任务栏完全透明”时任务栏会短暂重建（Explorer 重启）；这是让原生设置真正生效所必需的。之后 Start 菜单不会改变任务栏透明度。
 
 ## 下载
 
 | 文件 | 说明 | SHA-256 |
 | --- | --- | --- |
-| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `331ABF42CAFD73FAF981D97E3097AC8D1AC31A5CB3A8C86023DE0B1757F215AB` |
-| `DeskFlow-1.0.11-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `0A1CF200567220D13ACBA2C2755E678E7A8CD86AA3FDCCF3FE96783E55FC1406` |
+| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `57E79F359FC8731CF23808289192217618DE0BBDB107BC02287C6831E06AAC47` |
+| `DeskFlow-1.0.12-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `CEC7B9F7E15A33A7362EAA98B3909402E4DB7CE247EAA59606FB95A6E1C16084` |
 
 ## 系统要求
 
@@ -34,6 +30,7 @@
 
 - 当前只把壁纸铺在主显示器；多显示器扩展桌面暂未支持。
 - `TaskbarAcrylicOpacity` 依赖 Windows“透明效果”开启；如果系统设置关闭了透明效果，任务栏不会全透明。
+- 切换任务栏透明度会重启 Explorer，可能关闭已打开的“文件资源管理器”窗口。
 - Windows 11 22H2（22621.1343）之后，微软限制了第三方程序修改任务栏背景；若系统接管绘制，任务栏会保持系统默认外观。
 - 未购买代码签名证书，SmartScreen 可能提示“未知发布者”。请核对上面的 SHA-256。
 - 精简版不包含 VLC GUI、网络访问、蓝光和字幕相关插件；如果需要这些功能，请使用完整版构建 `build.ps1`。
