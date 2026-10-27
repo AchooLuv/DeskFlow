@@ -28,6 +28,8 @@ namespace DeskFlow
         private bool _fullscreenPaused;
         private bool _batteryPaused;
         private bool _shellOverlayOpen;
+        private bool _shellOverlayApplied;
+        private DateTime _shellOverlayApplyAt = DateTime.MinValue;
         private DateTime _lastBatteryCheck = DateTime.MinValue;
 
         public static readonly uint TaskbarCreatedMessage = NativeMethods.RegisterWindowMessage("TaskbarCreated");
@@ -123,12 +125,23 @@ namespace DeskFlow
                 {
                     if (IsShellOverlayOpen())
                     {
-                        _shellOverlayOpen = true;
+                        if (!_shellOverlayOpen)
+                        {
+                            _shellOverlayOpen = true;
+                            _shellOverlayApplied = false;
+                            _shellOverlayApplyAt = DateTime.UtcNow.AddMilliseconds(140);
+                        }
+                        if (!_shellOverlayApplied && DateTime.UtcNow >= _shellOverlayApplyAt)
+                        {
+                            TaskbarTransparency.Apply(true);
+                            _shellOverlayApplied = true;
+                        }
                         return;
                     }
                     if (_shellOverlayOpen)
                     {
                         _shellOverlayOpen = false;
+                        _shellOverlayApplied = false;
                         TaskbarTransparency.Apply(true);
                     }
                     else
