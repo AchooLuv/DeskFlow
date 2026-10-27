@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading;
 using Microsoft.Win32;
 
 namespace DeskFlow
@@ -51,9 +49,8 @@ namespace DeskFlow
             }
             else
             {
-                Restore();
+                Restore(true);
             }
-            RestartExplorer();
         }
 
         public static void ApplyIfNeeded()
@@ -124,9 +121,9 @@ namespace DeskFlow
             }
         }
 
-        public static void Restore()
+        public static void Restore(bool keepOpaque = false)
         {
-            RestoreNativeOpacity();
+            RestoreNativeOpacity(keepOpaque);
             lock (Sync)
             {
                 foreach (KeyValuePair<IntPtr, NativeMethods.AccentPolicy> pair in Original)
@@ -142,27 +139,6 @@ namespace DeskFlow
                 }
                 Original.Clear();
                 Log.Info("已恢复任务栏样式");
-            }
-        }
-
-        private static void RestartExplorer()
-        {
-            try
-            {
-                foreach (Process process in Process.GetProcessesByName("explorer"))
-                {
-                    try { process.Kill(); } catch { }
-                }
-                Thread.Sleep(500);
-                if (Process.GetProcessesByName("explorer").Length == 0)
-                {
-                    Process.Start("explorer.exe");
-                }
-                Log.Info("已重启 Explorer 以应用任务栏设置");
-            }
-            catch (Exception ex)
-            {
-                Log.Warn("重启 Explorer 失败: " + ex.Message);
             }
         }
 
@@ -196,7 +172,7 @@ namespace DeskFlow
             }
         }
 
-        private static void RestoreNativeOpacity()
+        private static void RestoreNativeOpacity(bool keepOpaque)
         {
             if (!_opacityCaptured) return;
             try
@@ -205,8 +181,18 @@ namespace DeskFlow
                 {
                     if (key != null)
                     {
-                        if (_opacityExisted) key.SetValue(OpacityValue, _opacityOriginal);
-                        else key.DeleteValue(OpacityValue, false);
+                        if (keepOpaque)
+                        {
+                            key.SetValue(OpacityValue, 255, RegistryValueKind.DWord);
+                        }
+                        else if (_opacityExisted)
+                        {
+                            key.SetValue(OpacityValue, _opacityOriginal);
+                        }
+                        else
+                        {
+                            key.DeleteValue(OpacityValue, false);
+                        }
                     }
                 }
                 BroadcastSettingsChange();
@@ -217,8 +203,11 @@ namespace DeskFlow
             }
             finally
             {
-                _opacityCaptured = false;
-                _opacityOriginal = null;
+                if (!keepOpaque)
+                {
+                    _opacityCaptured = false;
+                    _opacityOriginal = null;
+                }
             }
         }
 
