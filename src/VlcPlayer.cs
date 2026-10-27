@@ -26,16 +26,11 @@ namespace DeskFlow
         private int _volume = 0;
         private bool _loop = true;
         private bool _disposed;
-        private bool _started;
+        private volatile bool _started;
 
         public event Action Started;
         public event Action<string> PlaybackError;
         public event Action Ended;
-
-        public bool IsInitialized
-        {
-            get { return _instance != IntPtr.Zero; }
-        }
 
         public VlcPlayer()
         {
@@ -213,32 +208,47 @@ namespace DeskFlow
 
             if (type == EventPlaying)
             {
-                ApplyTuning();
-                if (!_started)
+                bool first = !_started;
+                if (first) _started = true;
+                Post(delegate
                 {
-                    _started = true;
-                    Raise(Started);
-                }
+                    if (_disposed || _player == IntPtr.Zero) return;
+                    ApplyTuning();
+                    if (first) Raise(Started);
+                });
             }
             else if (type == EventEndReached)
             {
-                if (_loop && _player != IntPtr.Zero && !_disposed)
+                Post(delegate
                 {
-                    try
+                    if (_disposed) return;
+                    if (_loop && _player != IntPtr.Zero)
                     {
-                        libvlc_media_player_set_time(_player, 0);
-                        libvlc_media_player_play(_player);
+                        try
+                        {
+                            libvlc_media_player_set_time(_player, 0);
+                            libvlc_media_player_play(_player);
+                        }
+                        catch { }
                     }
-                    catch { }
-                }
-                else
-                {
-                    Raise(Ended);
-                }
+                    else
+                    {
+                        Raise(Ended);
+                    }
+                });
             }
             else if (type == EventEncounteredError)
             {
                 RaiseError("视频解码失败，请确认文件没有损坏。");
+            }
+        }
+
+        private void Post(Action action)
+        {
+            if (action == null || _disposed) return;
+            if (_sync != null)
+            {
+                _sync.Post(delegate { try { action(); } catch { } }, null);
             }
         }
 
@@ -303,26 +313,6 @@ namespace DeskFlow
                 if (_player == IntPtr.Zero) return 0;
                 try { return libvlc_media_player_get_length(_player); }
                 catch { return 0; }
-            }
-        }
-
-        public long Position
-        {
-            get
-            {
-                if (_player == IntPtr.Zero) return 0;
-                try { return libvlc_media_player_get_time(_player); }
-                catch { return 0; }
-            }
-        }
-
-        public bool IsPlaying
-        {
-            get
-            {
-                if (_player == IntPtr.Zero) return false;
-                try { return libvlc_media_player_is_playing(_player) != 0; }
-                catch { return false; }
             }
         }
 
@@ -441,17 +431,11 @@ namespace DeskFlow
         private static extern int libvlc_media_player_set_rate(IntPtr player, float rate);
 
         [DllImport("libvlc.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int libvlc_media_player_is_playing(IntPtr player);
-
-        [DllImport("libvlc.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int libvlc_video_take_snapshot(IntPtr player, uint num,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string path, uint width, uint height);
 
         [DllImport("libvlc.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern long libvlc_media_player_get_length(IntPtr player);
-
-        [DllImport("libvlc.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern long libvlc_media_player_get_time(IntPtr player);
 
         [DllImport("libvlc.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int libvlc_media_player_set_time(IntPtr player, long time);

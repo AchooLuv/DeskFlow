@@ -26,6 +26,7 @@ namespace DeskFlow
         private bool _exiting;
         private bool _fullscreenPaused;
         private bool _batteryPaused;
+        private bool _lastAutoStart;
         private DateTime _lastBatteryCheck = DateTime.MinValue;
 
         public static readonly uint TaskbarCreatedMessage = NativeMethods.RegisterWindowMessage("TaskbarCreated");
@@ -37,16 +38,17 @@ namespace DeskFlow
         {
             _settings = AppSettings.Load();
             TaskbarTransparency.Initialize(_settings.TaskbarTransparent);
+            _lastAutoStart = _settings.AutoStart;
             EnsureAutoStart();
             _controller = new WallpaperController(_settings);
             _controller.PreviewChanged += delegate
             {
-                if (_form != null && !_form.IsDisposed && _form.Visible) _form.RefreshUi();
+                if (_form != null && !_form.IsDisposed && _form.Visible) _form.RequestRefresh();
             };
             _controller.StateChanged += delegate
             {
                 UpdateTray();
-                if (_form != null && !_form.IsDisposed && _form.Visible) _form.RefreshUi();
+                if (_form != null && !_form.IsDisposed && _form.Visible) _form.RequestRefresh();
             };
             _controller.Error += OnWallpaperError;
 
@@ -69,7 +71,7 @@ namespace DeskFlow
             {
                 _controller.TogglePause();
                 UpdateTray();
-                if (_form != null && !_form.IsDisposed && _form.Visible) _form.RefreshUi();
+                if (_form != null && !_form.IsDisposed && _form.Visible) _form.RequestRefresh();
             };
             _menu.Items.Add(_pauseItem);
 
@@ -77,7 +79,7 @@ namespace DeskFlow
             _nextItem.Click += delegate
             {
                 _controller.NextImage();
-                if (_form != null && !_form.IsDisposed && _form.Visible) _form.RefreshUi();
+                if (_form != null && !_form.IsDisposed && _form.Visible) _form.RequestRefresh();
             };
             _menu.Items.Add(_nextItem);
             _menu.Items.Add(new ToolStripSeparator());
@@ -153,10 +155,14 @@ namespace DeskFlow
         public void OnSettingsChanged()
         {
             TaskbarTransparency.SetEnabled(_settings.TaskbarTransparent);
-            EnsureAutoStart();
+            if (_lastAutoStart != _settings.AutoStart)
+            {
+                _lastAutoStart = _settings.AutoStart;
+                EnsureAutoStart();
+            }
             _controller.Apply(_settings, false);
             UpdateTray();
-            if (_form != null && !_form.IsDisposed) _form.RefreshUi();
+            if (_form != null && !_form.IsDisposed) _form.RequestRefresh();
             SaveSoon();
         }
 
@@ -305,7 +311,7 @@ namespace DeskFlow
             else if (e.Reason == SessionSwitchReason.SessionUnlock)
             {
                 _controller.SetSessionLocked(false);
-                TaskbarTransparency.Apply(true);
+                TaskbarTransparency.Apply();
             }
         }
 
@@ -324,7 +330,7 @@ namespace DeskFlow
         internal void OnTaskbarCreated()
         {
             Log.Info("检测到任务栏重建，正在恢复壁纸与任务栏样式。");
-            TaskbarTransparency.Apply(true);
+            TaskbarTransparency.Apply();
             _controller.Reattach();
         }
 
@@ -333,7 +339,9 @@ namespace DeskFlow
             if (_exiting) return;
             _exiting = true;
             try { _timer.Stop(); } catch { }
+            try { _timer.Dispose(); } catch { }
             try { _saveTimer.Stop(); } catch { }
+            try { _saveTimer.Dispose(); } catch { }
             try { _settings.Save(); } catch { }
             SystemEvents.SessionSwitch -= SystemEventsSessionSwitch;
             SystemEvents.PowerModeChanged -= SystemEventsPowerModeChanged;

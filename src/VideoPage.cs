@@ -324,6 +324,21 @@ namespace DeskFlow
             return null;
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _thumbGeneration++;
+                Bitmap bitmap = _thumbBitmap;
+                _thumbBitmap = null;
+                if (bitmap != null)
+                {
+                    try { bitmap.Dispose(); } catch { }
+                }
+            }
+            base.Dispose(disposing);
+        }
+
         protected override void LayoutPage()
         {
             int margin = ContentMargin;

@@ -42,11 +42,8 @@ namespace DeskFlow
         public static readonly Font ButtonFont;
         public static readonly Font NavFont;
         public static readonly Font Icon12;
-        public static readonly Font Icon14;
         public static readonly Font Icon16;
-        public static readonly Font Icon20;
         public static readonly Font Icon24;
-        public static readonly Font Number;
 
         static Theme()
         {
@@ -65,11 +62,8 @@ namespace DeskFlow
             ButtonFont = new Font(UiFamily, 9.2f, FontStyle.Regular, GraphicsUnit.Point);
             NavFont = new Font(UiFamily, 10f, FontStyle.Regular, GraphicsUnit.Point);
             Icon12 = new Font(IconFamily, 9f, FontStyle.Regular, GraphicsUnit.Point);
-            Icon14 = new Font(IconFamily, 11f, FontStyle.Regular, GraphicsUnit.Point);
             Icon16 = new Font(IconFamily, 13f, FontStyle.Regular, GraphicsUnit.Point);
-            Icon20 = new Font(IconFamily, 16f, FontStyle.Regular, GraphicsUnit.Point);
             Icon24 = new Font(IconFamily, 20f, FontStyle.Regular, GraphicsUnit.Point);
-            Number = new Font(UiFamily, 21f, FontStyle.Bold, GraphicsUnit.Point);
         }
 
         private static string PickFamily(params string[] names)
@@ -123,27 +117,26 @@ namespace DeskFlow
                 g.DrawPath(pen, path);
         }
 
-        public static void DrawText(Graphics g, string text, Font font, Color color, Rectangle bounds,
-            TextFormatFlags flags = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding)
-        {
-            TextRenderer.DrawText(g, text, font, bounds, color, flags | TextFormatFlags.NoPrefix);
-        }
-
         public static string Ellipsis(string text, Font font, int maxWidth)
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
             if (TextRenderer.MeasureText(text, font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width <= maxWidth)
                 return text;
 
-            string value = text;
-            while (value.Length > 2)
+            int low = 0;
+            int high = text.Length;
+            while (low < high)
             {
-                value = value.Substring(0, value.Length - 1);
-                string candidate = value.TrimEnd() + "…";
-                if (TextRenderer.MeasureText(candidate, font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width <= maxWidth)
-                    return candidate;
+                int mid = (low + high + 1) / 2;
+                string candidate = text.Substring(0, mid).TrimEnd() + "…";
+                if (TextRenderer.MeasureText(candidate, font, new Size(int.MaxValue, int.MaxValue),
+                    TextFormatFlags.NoPadding).Width <= maxWidth)
+                    low = mid;
+                else
+                    high = mid - 1;
             }
-            return "…";
+            if (low <= 0) return "…";
+            return text.Substring(0, low).TrimEnd() + "…";
         }
 
         public static Color Blend(Color a, Color b, float amount)

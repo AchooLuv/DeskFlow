@@ -42,7 +42,7 @@ namespace DeskFlow
                 if (_settings.Mode == "slideshow") RaiseState();
             };
 
-            _maintenance = new Timer { Interval = 4000 };
+            _maintenance = new Timer { Interval = 10000 };
             _maintenance.Tick += delegate { Maintain(); };
             _maintenance.Start();
 
@@ -55,15 +55,11 @@ namespace DeskFlow
         public bool IsVideoActive { get { return _videoActive; } }
         public bool DesktopAttachFailed { get { return _desktopAttachFailed; } }
         public bool IsPaused { get { return _userPaused || _autoPaused || _sessionLocked; } }
-        public bool IsUserPaused { get { return _userPaused; } }
-        public string Mode { get { return _settings.Mode; } }
-        public string CurrentVideoPath { get { return _settings.VideoPath; } }
         public string CurrentImagePath { get { return _slideshow.CurrentPath; } }
         public int ImageCount { get { return _slideshow.ImageCount; } }
         public Bitmap CurrentImage { get { return _slideshow.CurrentBitmap; } }
         public Bitmap VideoCover { get { return _videoCover; } }
         public long VideoLength { get { return _vlc != null ? _vlc.Length : 0; } }
-        public long VideoPosition { get { return _vlc != null ? _vlc.Position : 0; } }
 
         private void CreateWindow()
         {
@@ -279,8 +275,6 @@ namespace DeskFlow
             if (_vlc != null)
             {
                 try { _vlc.Stop(); } catch { }
-                try { _vlc.Dispose(); } catch { }
-                _vlc = null;
             }
             if (_window != null) _window.HideVideo();
         }
@@ -352,15 +346,6 @@ namespace DeskFlow
             if (_settings.Mode == "slideshow") _slideshow.Refresh();
         }
 
-        public void ApplyVideoTuning()
-        {
-            if (_vlc == null) return;
-            _vlc.SetRate(_settings.PlaybackRate);
-            _vlc.SetVolume(_settings.Volume);
-            _vlc.SetLoop(_settings.Loop);
-            ApplyPauseState();
-        }
-
         public void Reattach()
         {
             if (_disposed) return;
@@ -418,15 +403,14 @@ namespace DeskFlow
 
         private void RaiseError(string message)
         {
-            if (string.IsNullOrEmpty(message) || string.Equals(message, _lastVideoError, StringComparison.Ordinal))
+            if (string.IsNullOrEmpty(message)) return;
+            if (string.Equals(message, _lastVideoError, StringComparison.Ordinal))
             {
-                Log.Warn("视频错误: " + (message ?? string.Empty));
+                Log.Warn("视频错误（重复）: " + message);
+                return;
             }
-            else
-            {
-                _lastVideoError = message;
-                Log.Warn("视频错误: " + message);
-            }
+            _lastVideoError = message;
+            Log.Warn("视频错误: " + message);
             Action<string> handler = Error;
             if (handler != null) handler(message);
         }
@@ -442,6 +426,15 @@ namespace DeskFlow
             _coverTimer.Dispose();
             try { _slideshow.Dispose(); } catch { }
             try { StopVideo(); } catch { }
+            try
+            {
+                if (_vlc != null)
+                {
+                    _vlc.Dispose();
+                    _vlc = null;
+                }
+            }
+            catch { }
             try
             {
                 if (_window != null)

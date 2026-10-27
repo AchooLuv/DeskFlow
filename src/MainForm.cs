@@ -33,9 +33,9 @@ namespace DeskFlow
         private readonly VideoPage _videoPage;
         private readonly SettingsPage _settingsPage;
         private readonly ToastControl _toast;
-        private readonly Timer _uiTimer;
         private int _currentPage;
         private bool _attachWarned;
+        private bool _refreshPending;
 
         public MainForm(TrayContext context, AppSettings settings, WallpaperController controller)
         {
@@ -143,7 +143,7 @@ namespace DeskFlow
             _statusPerf.SetBounds(12, 78, 158, 18);
             _statusCard.Controls.Add(_statusPerf);
 
-            _version = Ui.Label("v1.0.13  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
+            _version = Ui.Label("v1.0.14  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
             _version.SetBounds(16, 0, 180, 18);
             _sidebar.Controls.Add(_version);
 
@@ -221,8 +221,6 @@ namespace DeskFlow
             Controls.Add(_toast);
             _toast.BringToFront();
 
-            _uiTimer = new Timer { Interval = 2000 };
-            _uiTimer.Tick += delegate { if (Visible) UpdateSidebar(); };
             LayoutChrome();
 
             Shown += delegate
@@ -230,7 +228,6 @@ namespace DeskFlow
                 Log.Info("UI: dpi=" + DeviceDpi + " client=" + ClientSize + " bounds=" + Bounds +
                     " scaleDims=" + AutoScaleDimensions);
                 CenterOnPrimaryScreen();
-                _uiTimer.Start();
                 ShowPage(Math.Max(0, Math.Min(2, _settings.LastPage)), false);
                 RefreshUi();
                 if (_controller.DesktopAttachFailed && !_attachWarned)
@@ -238,11 +235,6 @@ namespace DeskFlow
                     _attachWarned = true;
                     ShowToast("壁纸窗口未能挂载到桌面，请重启 DeskFlow 或 Explorer 后重试。", true);
                 }
-            };
-            VisibleChanged += delegate
-            {
-                if (Visible) _uiTimer.Start();
-                else _uiTimer.Stop();
             };
             Resize += delegate
             {
@@ -268,6 +260,24 @@ namespace DeskFlow
                 CreateParams cp = base.CreateParams;
                 cp.ClassStyle |= 0x20000;
                 return cp;
+            }
+        }
+
+        public void RequestRefresh()
+        {
+            if (IsDisposed || !IsHandleCreated || !Visible || _refreshPending) return;
+            _refreshPending = true;
+            try
+            {
+                BeginInvoke((MethodInvoker)delegate
+                {
+                    _refreshPending = false;
+                    if (!IsDisposed) RefreshUi();
+                });
+            }
+            catch
+            {
+                _refreshPending = false;
             }
         }
 

@@ -132,7 +132,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 输出：
 
 - `build\DeskFlow.exe`：单文件可执行程序。
-- `build\DeskFlow-1.0.13-win64.zip`：含程序、README 与许可文件的便携包。
+- `build\DeskFlow-1.0.14-win64.zip`：含程序、README 与许可文件的便携包。
 
 ### 精简构建
 
@@ -145,7 +145,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build-slim.ps1
 输出：
 
 - `build\DeskFlow-slim.exe`：约 19 MB。
-- `build\DeskFlow-1.0.13-slim-win64.zip`：约 19 MB 的便携包。
+- `build\DeskFlow-1.0.14-slim-win64.zip`：约 19 MB 的便携包。
 - 首次启动释放的 runtime 约 40 MB。
 
 已测试的格式包括 MKV、MP4、AVI、MOV、WMV、WEBM，以及 H.264、HEVC、AV1、VP8、VP9、MPEG-2 编码。完整版 `build.ps1` 保留作为兼容性兜底。

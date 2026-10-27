@@ -22,13 +22,10 @@ namespace DeskFlow
         private bool _paused;
         private bool _disposed;
         private int _generation;
-        private int _failed;
 
         public Bitmap CurrentBitmap { get; private set; }
         public string CurrentPath { get; private set; }
         public int ImageCount { get { return _paths.Count; } }
-        public bool IsPaused { get { return _paused; } }
-        public bool IsLoading { get; private set; }
 
         public event Action<Bitmap> ImageChanged;
         public event Action StateChanged;
@@ -88,7 +85,6 @@ namespace DeskFlow
             _paths.Clear();
             _order.Clear();
             _cursor = 0;
-            _failed = 0;
             _paths.AddRange(ImageLoader.ScanFolder(_folder));
             BuildOrder();
             if (_paths.Count == 0)
@@ -163,7 +159,6 @@ namespace DeskFlow
             if (index < 0 || index >= _paths.Count) return;
             string path = _paths[index];
             CurrentPath = path;
-            IsLoading = true;
             RaiseState();
             int generation = ++_generation;
             int width = Screen.PrimaryScreen.Bounds.Width;
@@ -180,10 +175,8 @@ namespace DeskFlow
                         if (bitmap != null) bitmap.Dispose();
                         return;
                     }
-                    IsLoading = false;
                     if (bitmap == null)
                     {
-                        _failed++;
                         Log.Warn("轮播图片加载失败: " + path + " " + (error ?? string.Empty));
                         RaiseState();
                         // Skip a broken file after a short delay instead of blocking the rotation.
@@ -192,7 +185,6 @@ namespace DeskFlow
                         return;
                     }
 
-                    _failed = 0;
                     Bitmap previous = CurrentBitmap;
                     CurrentBitmap = bitmap;
                     Action<Bitmap> handler = ImageChanged;
@@ -225,12 +217,15 @@ namespace DeskFlow
 
         public void SetInterval(int seconds)
         {
-            _intervalSeconds = Math.Max(3, Math.Min(3600, seconds));
+            int normalized = Math.Max(3, Math.Min(3600, seconds));
+            if (_intervalSeconds == normalized) return;
+            _intervalSeconds = normalized;
             if (!_paused) StartTimer();
         }
 
         public void SetShuffle(bool shuffle)
         {
+            if (_shuffle == shuffle) return;
             _shuffle = shuffle;
             if (_shuffle)
             {

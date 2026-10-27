@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace DeskFlow
@@ -35,7 +36,10 @@ namespace DeskFlow
         private DateTime _scanStamp;
         private List<string> _scanFiles = new List<string>();
         private string _previewPath;
+        private string _previewTriedPath;
         private Bitmap _previewBitmap;
+        private bool _previewLoading;
+        private int _previewGeneration;
 
         public event Action Changed;
         public event Action TogglePauseRequested;
@@ -333,6 +337,16 @@ namespace DeskFlow
             if (string.Equals(_previewPath, path, StringComparison.OrdinalIgnoreCase)
                 && _previewBitmap != null)
                 return _previewBitmap;
+            if (string.Equals(_previewTriedPath, path, StringComparison.OrdinalIgnoreCase)
+                && _previewBitmap == null)
+                return null;
+            if (_previewLoading)
+            {
+                if (string.Equals(_previewTriedPath, path, StringComparison.OrdinalIgnoreCase))
+                    return null;
+                _previewGeneration++;
+                _previewLoading = false;
+            }
 
             _preview.PreviewImage = null;
             if (_previewBitmap != null)
@@ -340,16 +354,59 @@ namespace DeskFlow
                 try { _previewBitmap.Dispose(); } catch { }
                 _previewBitmap = null;
             }
-            string error;
-            _previewBitmap = ImageLoader.LoadForSize(path, 640, 360, out error);
-            _previewPath = _previewBitmap != null ? path : null;
-            return _previewBitmap;
+            _previewPath = null;
+            _previewTriedPath = path;
+            _previewLoading = true;
+            int generation = ++_previewGeneration;
+            TaskScheduler scheduler;
+            try { scheduler = TaskScheduler.FromCurrentSynchronizationContext(); }
+            catch { _previewLoading = false; return null; }
+
+            Task.Run(delegate
+            {
+                string error;
+                return ImageLoader.LoadForSize(path, 640, 360, out error);
+            }).ContinueWith(delegate(Task<Bitmap> task)
+            {
+                Bitmap bitmap = task.Result;
+                if (IsDisposed || generation != _previewGeneration)
+                {
+                    if (bitmap != null) bitmap.Dispose();
+                    return;
+                }
+                _previewLoading = false;
+                if (bitmap == null) return;
+                if (_settings.Mode == "slideshow")
+                {
+                    _previewTriedPath = null;
+                    bitmap.Dispose();
+                    return;
+                }
+                _previewBitmap = bitmap;
+                _previewPath = path;
+                _previewTriedPath = path;
+                _preview.PreviewImage = bitmap;
+                _preview.Invalidate();
+            }, scheduler);
+            return null;
         }
 
-        public void ShowFolderEmptyHint()
+        protected override void Dispose(bool disposing)
         {
-            _statusDetail.Text = "这个文件夹里没有支持的图片，请选择其他文件夹。";
-            _statusDetail.ForeColor = Theme.Warning;
+            if (disposing)
+            {
+                Bitmap bitmap = _previewBitmap;
+                _previewBitmap = null;
+                _previewPath = null;
+                _previewTriedPath = null;
+                _previewLoading = false;
+                _previewGeneration++;
+                if (bitmap != null)
+                {
+                    try { bitmap.Dispose(); } catch { }
+                }
+            }
+            base.Dispose(disposing);
         }
 
         protected override void LayoutPage()

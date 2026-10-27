@@ -54,7 +54,6 @@ namespace DeskFlow
         private bool _pressed;
 
         public UiButtonStyle Style { get; set; }
-        public string Glyph { get; set; }
         public float Radius { get; set; }
 
         public UiButton()
@@ -135,20 +134,9 @@ namespace DeskFlow
                     Theme.DrawRounded(g, pen, rect, Radius);
             }
 
-            bool hasGlyph = !string.IsNullOrEmpty(Glyph);
-            int glyphWidth = hasGlyph ? 20 : 0;
             Size textSize = TextRenderer.MeasureText(Text ?? string.Empty, Font,
                 new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
-            int gap = hasGlyph && !string.IsNullOrEmpty(Text) ? 6 : 0;
-            int total = glyphWidth + gap + textSize.Width;
-            int x = Math.Max(4, (Width - total) / 2);
-
-            if (hasGlyph)
-            {
-                TextRenderer.DrawText(g, Glyph, Theme.Icon14, new Rectangle(x, 0, glyphWidth, Height), text,
-                    TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
-                x += glyphWidth + gap;
-            }
+            int x = Math.Max(4, (Width - textSize.Width) / 2);
             if (!string.IsNullOrEmpty(Text))
             {
                 TextRenderer.DrawText(g, Text, Font, new Rectangle(x, 0, textSize.Width + 2, Height), text,
@@ -197,10 +185,6 @@ namespace DeskFlow
             if (_pressed && Style == UiButtonStyle.Secondary) fill = Theme.Card;
         }
 
-        public static UiButton Create(string text, string glyph, UiButtonStyle style)
-        {
-            return new UiButton { Text = text, Glyph = glyph, Style = style };
-        }
     }
 
     internal class IconButton : Control
@@ -753,7 +737,12 @@ namespace DeskFlow
         public Image PreviewImage
         {
             get { return _image; }
-            set { _image = value; Invalidate(); }
+            set
+            {
+                if (ReferenceEquals(_image, value)) return;
+                _image = value;
+                Invalidate();
+            }
         }
 
         public string Title
@@ -992,6 +981,16 @@ namespace DeskFlow
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             _timer = new Timer { Interval = 2400 };
             _timer.Tick += delegate { _timer.Stop(); Visible = false; };
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                try { _timer.Stop(); } catch { }
+                try { _timer.Dispose(); } catch { }
+            }
+            base.Dispose(disposing);
         }
 
         public void ShowToast(string text, bool error = false)

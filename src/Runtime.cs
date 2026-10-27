@@ -23,8 +23,6 @@ namespace DeskFlow
 #endif
         public const string ResourceName = "DeskFlow.Payload.runtime.zip";
 
-        public static Exception LastError { get; private set; }
-
         private static string _baseDir;
 
         public static string DataDirectory
@@ -197,7 +195,6 @@ namespace DeskFlow
             }
             catch (Exception ex)
             {
-                LastError = ex;
                 error = ex.GetType().Name + ": " + ex.Message;
                 Log.Error("释放播放引擎失败", ex);
                 WriteFailureLog(ex);

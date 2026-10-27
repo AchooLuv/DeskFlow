@@ -36,10 +36,10 @@ namespace DeskFlow
         public static Bitmap Load(string path, int width, int height)
         {
             if (string.IsNullOrEmpty(path) || width < 1 || height < 1) return null;
+            IShellItemImageFactory factory = null;
             try
             {
                 Guid iid = typeof(IShellItemImageFactory).GUID;
-                IShellItemImageFactory factory;
                 SHCreateItemFromParsingName(path, IntPtr.Zero, ref iid, out factory);
                 if (factory == null) return null;
 
@@ -65,6 +65,13 @@ namespace DeskFlow
             catch
             {
                 return null;
+            }
+            finally
+            {
+                if (factory != null)
+                {
+                    try { Marshal.ReleaseComObject(factory); } catch { }
+                }
             }
         }
     }

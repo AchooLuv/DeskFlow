@@ -17,12 +17,6 @@ namespace DeskFlow
         private static bool _opacityCaptured;
         private static bool _opacityExisted;
         private static object _opacityOriginal;
-        private static DateTime _lastApply = DateTime.MinValue;
-
-        public static bool Enabled
-        {
-            get { return _enabled; }
-        }
 
         public static void Initialize(bool enabled)
         {
@@ -30,22 +24,18 @@ namespace DeskFlow
             if (_enabled)
             {
                 ApplyNativeOpacity();
-                Apply(true);
+                Apply();
             }
         }
 
         public static void SetEnabled(bool enabled)
         {
-            if (_enabled == enabled)
-            {
-                if (enabled) Apply(false);
-                return;
-            }
+            if (_enabled == enabled) return;
             _enabled = enabled;
             if (enabled)
             {
                 ApplyNativeOpacity();
-                Apply(true);
+                Apply();
             }
             else
             {
@@ -53,19 +43,7 @@ namespace DeskFlow
             }
         }
 
-        public static void ApplyIfNeeded()
-        {
-            if (!_enabled) return;
-            // Start menu and other shell surfaces can reset the taskbar's
-            // accent policy. Re-assert it regularly instead of waiting 30s.
-            // Windows 11's DWM message is heavier, so use a slightly longer
-            // interval there.
-            double minimum = NativeMethods.IsWindows11 ? 2.0 : 0.6;
-            if ((DateTime.UtcNow - _lastApply).TotalSeconds < minimum) return;
-            Apply(false);
-        }
-
-        public static void Apply(bool force)
+        public static void Apply()
         {
             if (!_enabled) return;
             lock (Sync)
@@ -116,8 +94,7 @@ namespace DeskFlow
                 }
                 foreach (IntPtr hwnd in stale) Original.Remove(hwnd);
 
-                _lastApply = DateTime.UtcNow;
-                if (force) Log.Info("已应用任务栏完全透明样式");
+                Log.Info("已应用任务栏完全透明样式");
             }
         }
 

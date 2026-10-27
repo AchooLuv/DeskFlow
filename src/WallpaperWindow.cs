@@ -9,7 +9,6 @@ namespace DeskFlow
     {
         private readonly Panel _videoHost;
         private Bitmap _image;
-        private IntPtr _desktopParent;
 
         public WallpaperWindow()
         {
@@ -81,7 +80,6 @@ namespace DeskFlow
                 return false;
             }
 
-            _desktopParent = target;
             Log.Info("桌面挂载目标: progman=" + desktop.Progman + " workerw=" + desktop.WorkerW
                 + " defview=" + desktop.DefView + " raised=" + desktop.Raised + " target=" + target);
             NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
@@ -134,12 +132,6 @@ namespace DeskFlow
             Invalidate();
         }
 
-        public void ClearImage()
-        {
-            _image = null;
-            Invalidate();
-        }
-
         public void ShowVideo()
         {
             _videoHost.Visible = true;
@@ -158,14 +150,6 @@ namespace DeskFlow
             _image = null;
             _videoHost.Visible = false;
             Invalidate();
-        }
-
-        public void RefreshAttachment()
-        {
-            if (!IsAttached)
-            {
-                AttachToDesktop();
-            }
         }
 
         protected override void WndProc(ref Message m)

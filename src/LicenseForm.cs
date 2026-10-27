@@ -10,6 +10,7 @@ namespace DeskFlow
     internal sealed class LicenseForm : Form
     {
         private readonly TextBox _text;
+        private readonly Font _monoFont;
 
         public LicenseForm()
         {
@@ -29,7 +30,8 @@ namespace DeskFlow
             _text.BorderStyle = BorderStyle.None;
             _text.BackColor = Theme.CardSoft;
             _text.ForeColor = Theme.TextMuted;
-            _text.Font = new Font("Consolas", 9f, FontStyle.Regular, GraphicsUnit.Point);
+            _monoFont = new Font("Consolas", 9f, FontStyle.Regular, GraphicsUnit.Point);
+            _text.Font = _monoFont;
             _text.SetBounds(24, 74, ClientSize.Width - 48, ClientSize.Height - 98);
             Controls.Add(_text);
 
@@ -70,7 +72,7 @@ namespace DeskFlow
         private void LoadText()
         {
             StringBuilder builder = new StringBuilder();
-            builder.AppendLine("DeskFlow 1.0.13");
+            builder.AppendLine("DeskFlow 1.0.14");
             builder.AppendLine("Copyright © 2026 AchooLuv");
             builder.AppendLine();
             builder.AppendLine("DeskFlow is free software under the GNU General Public License v3.");
@@ -102,6 +104,15 @@ namespace DeskFlow
             {
                 return ex.Message;
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                try { _monoFont.Dispose(); } catch { }
+            }
+            base.Dispose(disposing);
         }
 
         protected override void OnPaint(PaintEventArgs e)

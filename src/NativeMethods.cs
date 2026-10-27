@@ -21,24 +21,17 @@ namespace DeskFlow
         public const int SW_HIDE = 0;
         public const int SW_SHOWNOACTIVATE = 4;
 
-        public static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
         public static readonly IntPtr HWND_TOP = IntPtr.Zero;
 
-        public const uint SWP_NOSIZE = 0x0001;
-        public const uint SWP_NOMOVE = 0x0002;
-        public const uint SWP_NOZORDER = 0x0004;
         public const uint SWP_NOACTIVATE = 0x0010;
         public const uint SWP_SHOWWINDOW = 0x0040;
-        public const uint SWP_FRAMECHANGED = 0x0020;
 
         public const int WM_DWMCOMPOSITIONCHANGED = 0x031E;
         public const int WM_MOUSEACTIVATE = 0x0021;
         public const int MA_NOACTIVATE = 3;
         public const int WM_NCHITTEST = 0x0084;
-        public const int HTTRANSPARENT = -1;
 
         public const int SMTO_ABORTIFHUNG = 0x0002;
-        public const uint SPI_GETDESKWALLPAPER = 0x0073;
 
         public const int WCA_ACCENT_POLICY = 19;
 
@@ -103,9 +96,6 @@ namespace DeskFlow
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
         [DllImport("user32.dll")]
         public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
@@ -189,22 +179,6 @@ namespace DeskFlow
                 try { return Environment.OSVersion.Version.Major == 10 && Environment.OSVersion.Version.Build >= 22000; }
                 catch { return false; }
             }
-        }
-
-        public static int WindowsBuild
-        {
-            get
-            {
-                try { return Environment.OSVersion.Version.Build; }
-                catch { return 0; }
-            }
-        }
-
-        public static IntPtr FindDesktopWorkerW(out IntPtr progman)
-        {
-            DesktopTarget target = FindDesktopTarget();
-            progman = target.Progman;
-            return target.WorkerW;
         }
 
         public struct DesktopTarget
