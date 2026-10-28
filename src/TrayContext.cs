@@ -109,7 +109,7 @@ namespace DeskFlow
             _tray.BalloonTipClosed += delegate { _tray.Visible = true; };
 
             _messageWindow = new MessageWindow(this);
-            _timer = new Timer { Interval = 2000 };
+            _timer = new Timer { Interval = 3000 };
             _timer.Tick += delegate { OnTick(); };
             _timer.Start();
 
@@ -150,6 +150,13 @@ namespace DeskFlow
             _form.Activate();
             try { NativeMethods.SetForegroundWindow(_form.Handle); } catch { }
             _form.RefreshUi();
+        }
+
+        public void OnVideoTuningChanged()
+        {
+            _controller.Apply(_settings, false);
+            if (_form != null && !_form.IsDisposed) _form.RequestRefresh();
+            SaveSoon();
         }
 
         public void OnSettingsChanged()

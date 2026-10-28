@@ -143,7 +143,7 @@ namespace DeskFlow
             _statusPerf.SetBounds(12, 78, 158, 18);
             _statusCard.Controls.Add(_statusPerf);
 
-            _version = Ui.Label("v1.0.14  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
+            _version = Ui.Label("v1.0.15  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
             _version.SetBounds(16, 0, 180, 18);
             _sidebar.Controls.Add(_version);
 
@@ -187,7 +187,7 @@ namespace DeskFlow
                 RefreshUi();
             };
 
-            _videoPage.Changed += delegate { _context.OnSettingsChanged(); };
+            _videoPage.Changed += delegate { _context.OnVideoTuningChanged(); };
             _videoPage.TogglePauseRequested += delegate
             {
                 _controller.TogglePause();

@@ -117,6 +117,16 @@ namespace DeskFlow
             return true;
         }
 
+        public void UpdateDesktopBounds()
+        {
+            Rectangle bounds = Screen.PrimaryScreen.Bounds;
+            Bounds = bounds;
+            if (!IsAttached) return;
+            NativeMethods.SetWindowPos(Handle, NativeMethods.HWND_TOP,
+                bounds.Left, bounds.Top, bounds.Width, bounds.Height,
+                NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
+        }
+
         public void DetachFromDesktop()
         {
             if (IsHandleCreated)

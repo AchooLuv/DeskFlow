@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace DeskFlow
 {
@@ -22,6 +23,7 @@ namespace DeskFlow
         private string _lastVideoError;
         private DateTime _lastAttachAttempt = DateTime.MinValue;
         private bool _desktopAttachFailed;
+        private int _attachFailures;
         private Bitmap _videoCover;
         private string _coverVideoPath;
         private int _coverAttempts;
@@ -48,6 +50,7 @@ namespace DeskFlow
 
             _coverTimer = new Timer { Interval = 900 };
             _coverTimer.Tick += delegate { CaptureVideoCover(); };
+            SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
             Apply(_settings, true);
         }
@@ -66,6 +69,7 @@ namespace DeskFlow
             _window = new WallpaperWindow();
             _window.CreateControl();
             _desktopAttachFailed = !_window.AttachToDesktop();
+            _attachFailures = _desktopAttachFailed ? 1 : 0;
             _lastAttachAttempt = DateTime.UtcNow;
         }
 
@@ -349,6 +353,7 @@ namespace DeskFlow
         public void Reattach()
         {
             if (_disposed) return;
+            _attachFailures = 0;
             try
             {
                 if (!_window.IsHandleCreated || !NativeMethods.IsWindow(_window.Handle))
@@ -370,6 +375,31 @@ namespace DeskFlow
             }
         }
 
+        private void OnDisplaySettingsChanged(object sender, EventArgs e)
+        {
+            HandleDisplaySettingsChanged();
+        }
+
+        private void HandleDisplaySettingsChanged()
+        {
+            if (_disposed || _window == null) return;
+            if (_window.IsHandleCreated && _window.InvokeRequired)
+            {
+                try { _window.BeginInvoke(new Action(HandleDisplaySettingsChanged)); } catch { }
+                return;
+            }
+            try
+            {
+                _window.UpdateDesktopBounds();
+                if (_settings.Mode == "slideshow") _slideshow.Refresh();
+                else Apply(_settings, true);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("处理显示设置变化失败: " + ex.Message);
+            }
+        }
+
         private void Maintain()
         {
             if (_disposed) return;
@@ -380,12 +410,14 @@ namespace DeskFlow
                     Reattach();
                     return;
                 }
-                if (!_window.IsAttached)
+                if (!_window.IsAttached && _attachFailures < 6)
                 {
                     if ((DateTime.UtcNow - _lastAttachAttempt).TotalSeconds >= 30)
                     {
                         _lastAttachAttempt = DateTime.UtcNow;
                         _desktopAttachFailed = !_window.AttachToDesktop();
+                        if (_desktopAttachFailed) _attachFailures++;
+                        else _attachFailures = 0;
                     }
                 }
             }
@@ -419,6 +451,7 @@ namespace DeskFlow
         {
             if (_disposed) return;
             _disposed = true;
+            SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
             _maintenance.Stop();
             _maintenance.Dispose();
             _coverTimer.Stop();

@@ -27,6 +27,7 @@ namespace DeskFlow
         private bool _loop = true;
         private bool _disposed;
         private volatile bool _started;
+        private volatile int _generation;
 
         public event Action Started;
         public event Action<string> PlaybackError;
@@ -139,6 +140,7 @@ namespace DeskFlow
                 EnsureInstance();
                 Log.Info("VLC: 开始播放 " + path);
                 StopInternal(true);
+                _generation++;
                 _rate = Math.Max(0.25, Math.Min(2.0, rate));
                 _volume = Math.Max(0, Math.Min(100, volume));
                 _loop = loop;
@@ -206,13 +208,14 @@ namespace DeskFlow
             try { type = Marshal.ReadInt32(evt); }
             catch { return; }
 
+            int generation = _generation;
             if (type == EventPlaying)
             {
                 bool first = !_started;
                 if (first) _started = true;
                 Post(delegate
                 {
-                    if (_disposed || _player == IntPtr.Zero) return;
+                    if (_disposed || generation != _generation || _player == IntPtr.Zero) return;
                     ApplyTuning();
                     if (first) Raise(Started);
                 });
@@ -221,7 +224,7 @@ namespace DeskFlow
             {
                 Post(delegate
                 {
-                    if (_disposed) return;
+                    if (_disposed || generation != _generation) return;
                     if (_loop && _player != IntPtr.Zero)
                     {
                         try
@@ -239,7 +242,8 @@ namespace DeskFlow
             }
             else if (type == EventEncounteredError)
             {
-                RaiseError("视频解码失败，请确认文件没有损坏。");
+                if (generation == _generation)
+                    RaiseError("视频解码失败，请确认文件没有损坏。");
             }
         }
 
@@ -337,6 +341,7 @@ namespace DeskFlow
 
         private void StopInternal(bool release)
         {
+            _generation++;
             if (_player != IntPtr.Zero)
             {
                 DetachEvents();

@@ -144,7 +144,7 @@ namespace DeskFlow
             aboutTitle.SetBounds(18, 14, 220, 24);
             _aboutCard.Controls.Add(aboutTitle);
 
-            _versionLabel = Ui.Label("DeskFlow 1.0.14", Theme.BodyBold, Theme.Text, Theme.Card);
+            _versionLabel = Ui.Label("DeskFlow 1.0.15", Theme.BodyBold, Theme.Text, Theme.Card);
             _versionLabel.SetBounds(18, 46, 240, 22);
             _aboutCard.Controls.Add(_versionLabel);
 
