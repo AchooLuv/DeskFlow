@@ -35,6 +35,7 @@ namespace DeskFlow
         private string _scanFolder;
         private DateTime _scanStamp;
         private List<string> _scanFiles = new List<string>();
+        private int _scanGeneration;
         private string _previewPath;
         private string _previewTriedPath;
         private Bitmap _previewBitmap;
@@ -46,6 +47,7 @@ namespace DeskFlow
         public event Action NextRequested;
         public event Action RefreshRequested;
         public event Action ApplyRequested;
+        public event Action FilesChanged;
 
         public SlideshowPage(AppSettings settings)
         {
@@ -326,7 +328,20 @@ namespace DeskFlow
             {
                 _scanFolder = folder;
                 _scanStamp = stamp;
-                _scanFiles = ImageLoader.ScanFolder(folder);
+                _scanFiles = new List<string>();
+                int generation = ++_scanGeneration;
+                TaskScheduler scheduler;
+                try { scheduler = TaskScheduler.FromCurrentSynchronizationContext(); }
+                catch { return _scanFiles; }
+
+                Task.Run(delegate { return ImageLoader.ScanFolder(folder); })
+                    .ContinueWith(delegate(Task<List<string>> task)
+                    {
+                        if (IsDisposed || generation != _scanGeneration) return;
+                        _scanFiles = task.Result ?? new List<string>();
+                        Action handler = FilesChanged;
+                        if (handler != null) handler();
+                    }, scheduler);
             }
             return _scanFiles;
         }
@@ -401,6 +416,7 @@ namespace DeskFlow
                 _previewTriedPath = null;
                 _previewLoading = false;
                 _previewGeneration++;
+                _scanGeneration++;
                 if (bitmap != null)
                 {
                     try { bitmap.Dispose(); } catch { }
