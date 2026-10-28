@@ -1,13 +1,25 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace DeskFlow
 {
     internal static class Log
     {
         private static readonly object Sync = new object();
+        private static readonly ConcurrentQueue<string> Queue = new ConcurrentQueue<string>();
+        private static readonly AutoResetEvent Signal = new AutoResetEvent(false);
         private static string _path;
+
+        static Log()
+        {
+            Thread worker = new Thread(WriteLoop);
+            worker.IsBackground = true;
+            worker.Name = "DeskFlow.Log";
+            worker.Start();
+        }
 
         public static string LogPath
         {
@@ -47,22 +59,40 @@ namespace DeskFlow
         {
             try
             {
-                lock (Sync)
+                StringBuilder line = new StringBuilder();
+                line.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+                line.Append(" [").Append(level).Append("] ");
+                line.Append(message);
+                if (ex != null)
                 {
-                    RotateIfNeeded();
-                    StringBuilder line = new StringBuilder();
-                    line.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-                    line.Append(" [").Append(level).Append("] ");
-                    line.Append(message);
-                    if (ex != null)
-                    {
-                        line.AppendLine();
-                        line.Append(ex.ToString());
-                    }
-                    File.AppendAllText(LogPath, line.ToString() + Environment.NewLine, Encoding.UTF8);
+                    line.AppendLine();
+                    line.Append(ex.ToString());
                 }
+                Queue.Enqueue(line.ToString() + Environment.NewLine);
+                Signal.Set();
             }
             catch { }
+        }
+
+        private static void WriteLoop()
+        {
+            while (true)
+            {
+                Signal.WaitOne();
+                string line;
+                while (Queue.TryDequeue(out line))
+                {
+                    try
+                    {
+                        lock (Sync)
+                        {
+                            RotateIfNeeded();
+                            File.AppendAllText(LogPath, line, Encoding.UTF8);
+                        }
+                    }
+                    catch { }
+                }
+            }
         }
 
         private static void RotateIfNeeded()
