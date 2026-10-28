@@ -22,6 +22,7 @@ namespace DeskFlow
         private IntPtr _eventManager;
         private LibVlcEventCallback _callback;
         private readonly SynchronizationContext _sync;
+        private readonly object _playerLock = new object();
         private double _rate = 1.0;
         private int _volume = 0;
         private bool _loop = true;
@@ -322,15 +323,18 @@ namespace DeskFlow
 
         public bool TakeSnapshot(string path)
         {
-            if (_player == IntPtr.Zero) return false;
-            try
+            lock (_playerLock)
             {
-                return libvlc_video_take_snapshot(_player, 0, path, 960, 540) == 0;
-            }
-            catch (Exception ex)
-            {
-                Log.Warn("视频封面截图失败: " + ex.Message);
-                return false;
+                if (_player == IntPtr.Zero) return false;
+                try
+                {
+                    return libvlc_video_take_snapshot(_player, 0, path, 960, 540) == 0;
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn("视频封面截图失败: " + ex.Message);
+                    return false;
+                }
             }
         }
 
@@ -340,6 +344,14 @@ namespace DeskFlow
         }
 
         private void StopInternal(bool release)
+        {
+            lock (_playerLock)
+            {
+                StopInternalLocked(release);
+            }
+        }
+
+        private void StopInternalLocked(bool release)
         {
             _generation++;
             if (_player != IntPtr.Zero)

@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace DeskFlow
@@ -16,6 +17,7 @@ namespace DeskFlow
         {
             ".jpg", ".jpeg", ".jpe", ".jfif", ".png", ".webp", ".bmp", ".gif"
         };
+        private static volatile bool _webpGdiUnsupported;
 
         public static bool IsSupported(string path)
         {
@@ -106,10 +108,19 @@ namespace DeskFlow
 
             if (string.Equals(Path.GetExtension(path), ".webp", StringComparison.OrdinalIgnoreCase))
             {
-                try { return LoadFromFileStream(path); }
-                catch (Exception ex)
+                if (!_webpGdiUnsupported)
                 {
-                    Log.Info("系统 WebP 解码不可用，改用 dwebp: " + ex.Message);
+                    try
+                    {
+                        Image image = LoadFromFileStream(path);
+                        _webpGdiUnsupported = false;
+                        return image;
+                    }
+                    catch (Exception ex)
+                    {
+                        _webpGdiUnsupported = true;
+                        Log.Info("系统 WebP 解码不可用，改用 dwebp: " + ex.Message);
+                    }
                 }
                 return DecodeWebp(path, out tempFile);
             }
@@ -131,50 +142,98 @@ namespace DeskFlow
 
         private static Image DecodeWebp(string path, out string tempFile)
         {
-            tempFile = Path.Combine(Path.GetTempPath(), "DeskFlow-webp-" + Guid.NewGuid().ToString("N") + ".bmp");
+            tempFile = null;
             if (!File.Exists(Runtime.WebpTool))
                 throw new InvalidOperationException("缺少 WebP 解码组件。");
 
-            ProcessStartInfo info = new ProcessStartInfo
+            lock (WebpSync)
             {
-                FileName = Runtime.WebpTool,
-                Arguments = Quote(path) + " -bmp -o " + Quote(tempFile) + " -quiet",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden,
-                WorkingDirectory = Path.GetDirectoryName(Runtime.WebpTool)
-            };
-            using (Process process = Process.Start(info))
-            {
-                if (process == null) throw new InvalidOperationException("无法启动 WebP 解码器。");
-                if (!process.WaitForExit(20000))
+                string cacheFile = WebpCacheFile(path);
+                if (File.Exists(cacheFile))
                 {
-                    try { process.Kill(); } catch { }
-                    throw new TimeoutException("WebP 解码超时。");
+                    try { return LoadBitmapCopy(cacheFile); }
+                    catch { try { File.Delete(cacheFile); } catch { } }
                 }
-                if (process.ExitCode != 0 || !File.Exists(tempFile))
-                    throw new InvalidOperationException("WebP 文件无法解码。");
-            }
 
-            try
+                string temp = Path.Combine(Path.GetTempPath(),
+                    "DeskFlow-webp-" + Guid.NewGuid().ToString("N") + ".bmp");
+                try
+                {
+                    ProcessStartInfo info = new ProcessStartInfo
+                    {
+                        FileName = Runtime.WebpTool,
+                        Arguments = Quote(path) + " -bmp -o " + Quote(temp) + " -quiet",
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        WorkingDirectory = Path.GetDirectoryName(Runtime.WebpTool)
+                    };
+                    using (Process process = Process.Start(info))
+                    {
+                        if (process == null) throw new InvalidOperationException("无法启动 WebP 解码器。");
+                        if (!process.WaitForExit(20000))
+                        {
+                            try { process.Kill(); } catch { }
+                            throw new TimeoutException("WebP 解码超时。");
+                        }
+                        if (process.ExitCode != 0 || !File.Exists(temp))
+                            throw new InvalidOperationException("WebP 文件无法解码。");
+                    }
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(cacheFile));
+                    try { File.Copy(temp, cacheFile, true); } catch { }
+                    TrimWebpCache();
+                    return LoadBitmapCopy(File.Exists(cacheFile) ? cacheFile : temp);
+                }
+                finally
+                {
+                    try { File.Delete(temp); } catch { }
+                }
+            }
+        }
+
+        private static readonly object WebpSync = new object();
+
+        private static string WebpCacheFile(string path)
+        {
+            FileInfo info = new FileInfo(path);
+            string key = path.ToLowerInvariant() + "|" + info.LastWriteTimeUtc.Ticks + "|" + info.Length;
+            using (SHA1 sha = SHA1.Create())
             {
-                Image image = Image.FromFile(tempFile);
-                // Load a copy so the temporary file can be released immediately.
+                byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(key));
+                string name = BitConverter.ToString(hash).Replace("-", string.Empty).ToLowerInvariant();
+                return Path.Combine(AppPaths.DataDirectory, "cache", "webp", name + ".bmp");
+            }
+        }
+
+        private static Bitmap LoadBitmapCopy(string path)
+        {
+            using (Image image = Image.FromFile(path))
+            {
                 Bitmap copy = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
                 using (Graphics g = Graphics.FromImage(copy))
                 {
                     g.CompositingMode = CompositingMode.SourceCopy;
                     g.DrawImage(image, 0, 0, image.Width, image.Height);
                 }
-                image.Dispose();
                 return copy;
             }
-            catch
+        }
+
+        private static void TrimWebpCache()
+        {
+            try
             {
-                try { File.Delete(tempFile); } catch { }
-                tempFile = null;
-                throw;
+                string dir = Path.Combine(AppPaths.DataDirectory, "cache", "webp");
+                if (!Directory.Exists(dir)) return;
+                FileInfo[] files = new DirectoryInfo(dir).GetFiles("*.bmp");
+                if (files.Length <= 12) return;
+                foreach (FileInfo file in files.OrderByDescending(f => f.LastWriteTimeUtc).Skip(12))
+                {
+                    try { file.Delete(); } catch { }
+                }
             }
+            catch { }
         }
 
         private static void ApplyOrientation(Image image)

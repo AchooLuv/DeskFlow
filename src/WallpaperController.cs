@@ -2,8 +2,11 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using Timer = System.Windows.Forms.Timer;
 
 namespace DeskFlow
 {
@@ -12,6 +15,7 @@ namespace DeskFlow
         private readonly Slideshow _slideshow;
         private readonly Timer _maintenance;
         private readonly Timer _coverTimer;
+        private readonly SynchronizationContext _sync;
         private VlcPlayer _vlc;
         private WallpaperWindow _window;
         private AppSettings _settings;
@@ -27,6 +31,7 @@ namespace DeskFlow
         private Bitmap _videoCover;
         private string _coverVideoPath;
         private int _coverAttempts;
+        private bool _coverCapturing;
 
         public event Action PreviewChanged;
         public event Action StateChanged;
@@ -34,6 +39,7 @@ namespace DeskFlow
 
         public WallpaperController(AppSettings settings)
         {
+            _sync = SynchronizationContext.Current;
             _settings = settings.Clone();
             CreateWindow();
             _slideshow = new Slideshow();
@@ -192,53 +198,75 @@ namespace DeskFlow
         private void CaptureVideoCover()
         {
             _coverTimer.Stop();
-            if (_disposed || _vlc == null || !_videoActive || string.IsNullOrEmpty(_settings.VideoPath))
+            if (_disposed || _coverCapturing || _vlc == null || !_videoActive
+                || string.IsNullOrEmpty(_settings.VideoPath))
                 return;
 
-            string temp = Path.Combine(Path.GetTempPath(), "DeskFlow-cover-" + Guid.NewGuid().ToString("N") + ".jpg");
-            try
+            _coverCapturing = true;
+            VlcPlayer player = _vlc;
+            string videoPath = _settings.VideoPath;
+            Task.Run(delegate
             {
-                if (!_vlc.TakeSnapshot(temp) || !File.Exists(temp))
+                string temp = Path.Combine(Path.GetTempPath(),
+                    "DeskFlow-cover-" + Guid.NewGuid().ToString("N") + ".jpg");
+                try
                 {
-                    if (_coverAttempts < 2)
+                    if (!player.TakeSnapshot(temp) || !File.Exists(temp)) return null;
+                    using (FileStream stream = new FileStream(temp, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    using (Image image = Image.FromStream(stream, true, true))
                     {
-                        _coverAttempts++;
-                        _coverTimer.Start();
-                    }
-                    return;
-                }
-                _coverAttempts = 0;
-
-                Bitmap cover = null;
-                using (FileStream stream = new FileStream(temp, FileMode.Open, FileAccess.Read, FileShare.Read))
-                using (Image image = Image.FromStream(stream, true, true))
-                {
-                    cover = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
-                    using (Graphics g = Graphics.FromImage(cover))
-                    {
-                        g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                        g.DrawImage(image, 0, 0, image.Width, image.Height);
+                        Bitmap cover = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
+                        using (Graphics g = Graphics.FromImage(cover))
+                        {
+                            g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                            g.DrawImage(image, 0, 0, image.Width, image.Height);
+                        }
+                        return cover;
                     }
                 }
-
-                Bitmap previous = _videoCover;
-                _videoCover = cover;
-                _coverVideoPath = _settings.VideoPath;
-                Action handler = PreviewChanged;
-                if (handler != null) handler();
-                if (previous != null && !ReferenceEquals(previous, cover))
+                catch (Exception ex)
                 {
-                    try { previous.Dispose(); } catch { }
+                    Log.Warn("读取视频封面失败: " + ex.Message);
+                    return null;
                 }
-            }
-            catch (Exception ex)
+                finally
+                {
+                    try { File.Delete(temp); } catch { }
+                }
+            }).ContinueWith(delegate(Task<Bitmap> task)
             {
-                Log.Warn("读取视频封面失败: " + ex.Message);
-            }
-            finally
-            {
-                try { File.Delete(temp); } catch { }
-            }
+                Bitmap cover = task.Result;
+                Action apply = delegate
+                {
+                    _coverCapturing = false;
+                    if (_disposed || !ReferenceEquals(_vlc, player)
+                        || !string.Equals(_settings.VideoPath, videoPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (cover != null) cover.Dispose();
+                        return;
+                    }
+                    if (cover == null)
+                    {
+                        if (_coverAttempts < 2)
+                        {
+                            _coverAttempts++;
+                            _coverTimer.Start();
+                        }
+                        return;
+                    }
+                    _coverAttempts = 0;
+                    Bitmap previous = _videoCover;
+                    _videoCover = cover;
+                    _coverVideoPath = videoPath;
+                    Action handler = PreviewChanged;
+                    if (handler != null) handler();
+                    if (previous != null && !ReferenceEquals(previous, cover))
+                    {
+                        try { previous.Dispose(); } catch { }
+                    }
+                };
+                if (_sync != null) _sync.Post(delegate { try { apply(); } catch { } }, null);
+            });
         }
 
         private void ClearVideoCover()
