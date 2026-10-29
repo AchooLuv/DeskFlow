@@ -67,6 +67,9 @@ namespace DeskFlow
         [DllImport("user32.dll")]
         public static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, uint flags);
 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, string pvParam, uint fWinIni);
+
         public const uint RDW_INVALIDATE = 0x0001;
         public const uint RDW_ERASE = 0x0004;
         public const uint RDW_ALLCHILDREN = 0x0080;

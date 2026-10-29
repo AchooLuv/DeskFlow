@@ -1,32 +1,28 @@
-# DeskFlow v1.0.20
+# DeskFlow v1.0.21
 
-修复启动、退出和切换壁纸时的黑屏。
+进一步修复启动/切换的短暂黑屏和退出后桌面全黑。
 
-## 根因
+## 本版修复
 
-- Windows 10 壁纸应挂到 **WorkerW**。旧代码在 WorkerW 未就绪时退到 **Progman**，隐藏壁纸窗口后会露出 Progman 的黑色背景，导致启动、切换、退出黑屏。
-- 切换模式时旧代码先清空/隐藏壁纸窗口，再加载新内容，中间必然出现黑屏。
-- 挂载失败时旧版会显示全屏普通黑窗，开机 Explorer 未就绪时会直接盖住桌面。
-
-## 修复
-
-- Windows 10 只接受 **WorkerW**；找不到时保持隐藏并重试，不再退回 Progman。
-- 切换视频/图片时保留上一张图片或视频帧，直到新内容就绪，不再先隐藏窗口。
-- 挂载成功后窗口保持隐藏，只有图片或视频首帧就绪才显示。
-- 退出时先隐藏窗口、解除父子关系并重绘 Progman/WorkerW，避免残留黑窗。
-- 保留 v1.0.19 的 fallback 隐藏逻辑。
+- **启动不再黑屏**：启动时把系统当前壁纸作为过渡背景，先显示它，再替换为图片或视频，不再露出黑色父窗口。
+- **切换模式不再黑屏**：保留上一张图片/视频帧；没有旧内容时显示系统壁纸，直到新内容就绪。
+- **退出恢复系统壁纸**：退出前先通过 `SystemParametersInfo(SPI_SETDESKWALLPAPER)` 恢复当前系统壁纸，再隐藏/销毁壁纸窗口，并重绘 Progman/WorkerW。
+- **Windows 10 只挂 WorkerW**：找不到 WorkerW 时保持隐藏重试，不再退回 Progman 的黑色背景。
+- **不再显示全屏 fallback 黑窗**。
+- 保留 v1.0.20 的 WorkerW 目标修正、切换保留旧内容、退出重绘。
+- 保留之前 VLC/WebP/异步预览/性能清理。
 
 ## 说明
 
-- 开机自动启动必须先替换 `C:\Program Files\DeskFlow.exe` 为 v1.0.20，否则开机仍运行旧版。
-- 事件日志中没有发现 NVIDIA 显示驱动 TDR/超时记录，GPU 状态正常；本次黑屏更符合桌面窗口挂载/隐藏路径问题。
+- 开机自动启动必须先替换 `C:\Program Files\DeskFlow.exe` 为 v1.0.21，否则仍然运行旧版。
+- 系统日志未发现 NVIDIA 显示驱动 TDR/超时，GPU 状态正常；本次修复针对桌面窗口和系统壁纸恢复路径。
 
 ## 下载
 
 | 文件 | 说明 | SHA-256 |
 | --- | --- | --- |
-| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `D181F5B060EA52F96B25548EA16D67EA55952BB0A01FFEAAB0F68830294FB533` |
-| `DeskFlow-1.0.20-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `DCB5B0794A5CE1BA10552F1E803C31B7407ED4CBD8464BFD10CCA43C8A7FCCD2` |
+| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `7FB9C99209286C99AA0D8DBA4D38BE404BE1432717EE380A62E5A066FD2CFEB8` |
+| `DeskFlow-1.0.21-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `0A641536C58CEA78BDBABC058EE6DF83B8BBC8247958811F4D79E51999CEAE04` |
 
 ## 系统要求
 

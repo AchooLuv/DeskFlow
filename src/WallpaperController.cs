@@ -74,6 +74,7 @@ namespace DeskFlow
         {
             _window = new WallpaperWindow();
             _window.CreateControl();
+            _window.SetFallback(DesktopWallpaper.LoadForScreen());
             _desktopAttachFailed = !_window.AttachToDesktop();
             _attachFailures = _desktopAttachFailed ? 1 : 0;
             _lastAttachAttempt = DateTime.UtcNow;

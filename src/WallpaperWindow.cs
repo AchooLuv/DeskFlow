@@ -9,6 +9,7 @@ namespace DeskFlow
     {
         private readonly Panel _videoHost;
         private Bitmap _image;
+        private Bitmap _fallbackImage;
 
         public WallpaperWindow()
         {
@@ -117,7 +118,7 @@ namespace DeskFlow
                 bounds.Width, bounds.Height, NativeMethods.SWP_NOACTIVATE);
             NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
             Log.Info("壁纸窗口已挂载到桌面 (raised=" + desktop.Raised + ", parent=" + NativeMethods.GetParent(Handle) + ")");
-            if (_image != null || _videoHost.Visible) Reveal();
+            if (_image != null || _videoHost.Visible || _fallbackImage != null) ShowFallback();
             return true;
         }
 
@@ -156,12 +157,25 @@ namespace DeskFlow
             }
         }
 
+        public void SetFallback(Bitmap bitmap)
+        {
+            if (ReferenceEquals(_fallbackImage, bitmap)) return;
+            Bitmap previous = _fallbackImage;
+            bool showingFallback = ReferenceEquals(_image, previous);
+            _fallbackImage = bitmap;
+            if (showingFallback) _image = bitmap;
+            if (previous != null && !ReferenceEquals(previous, bitmap))
+            {
+                try { previous.Dispose(); } catch { }
+            }
+        }
+
         public void SetImage(Bitmap bitmap)
         {
             _image = bitmap;
             _videoHost.Visible = false;
             if (bitmap != null) Reveal();
-            else HideWindow();
+            else ShowFallback();
             Invalidate();
         }
 
@@ -176,16 +190,31 @@ namespace DeskFlow
         public void HideVideo()
         {
             _videoHost.Visible = false;
-            if (_image == null) HideWindow();
+            if (_image == null) ShowFallback();
             Invalidate();
         }
 
         public void ShowFallback()
         {
-            _image = null;
+            _image = _fallbackImage;
             _videoHost.Visible = false;
-            HideWindow();
+            if (_image != null) Reveal();
+            else HideWindow();
             Invalidate();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Bitmap fallback = _fallbackImage;
+                _fallbackImage = null;
+                if (fallback != null)
+                {
+                    try { fallback.Dispose(); } catch { }
+                }
+            }
+            base.Dispose(disposing);
         }
 
         private void Reveal()
