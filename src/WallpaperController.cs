@@ -201,15 +201,20 @@ namespace DeskFlow
             // Keep the fallback/last image for a moment so the host does not
             // expose an empty black swapchain.
             int generation = ++_videoRevealGeneration;
-            SynchronizationContext sync = _sync;
+            WallpaperWindow window = _window;
             Task.Delay(400).ContinueWith(delegate
             {
-                if (sync == null) return;
-                sync.Post(delegate
+                if (_disposed || generation != _videoRevealGeneration || !_videoActive) return;
+                if (window == null || !window.IsHandleCreated) return;
+                try
                 {
-                    if (_disposed || generation != _videoRevealGeneration || !_videoActive) return;
-                    _window.ShowVideo();
-                }, null);
+                    window.BeginInvoke(new Action(delegate
+                    {
+                        if (_disposed || generation != _videoRevealGeneration || !_videoActive) return;
+                        try { window.ShowVideo(); } catch { }
+                    }));
+                }
+                catch { }
             });
         }
 
