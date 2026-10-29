@@ -206,11 +206,10 @@ namespace DeskFlow
             target.Progman = FindWindow("Progman", null);
             if (target.Progman == IntPtr.Zero) return target;
 
-            // Ask Explorer to spawn the WorkerW that sits behind the desktop icons.
-            IntPtr result;
-            SendMessageTimeout(target.Progman, 0x052C, new IntPtr(0xD), new IntPtr(0x1),
-                SMTO_ABORTIFHUNG, 1000, out result);
-
+            // Do not send the undocumented 0x052C message on every attach: doing so
+            // makes Explorer repaint/recreate the desktop and is itself a visible
+            // black flash. WorkerW already exists on normal Windows 10 sessions;
+            // AttachToDesktop waits and retries when it does not.
             target.DefView = FindWindowEx(target.Progman, IntPtr.Zero, "SHELLDLL_DefView", null);
             int exStyle = GetWindowLong(target.Progman, GWL_EXSTYLE);
             target.Raised = (exStyle & WS_EX_NOREDIRECTIONBITMAP) != 0;

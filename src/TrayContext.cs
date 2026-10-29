@@ -352,6 +352,7 @@ namespace DeskFlow
             try { _settings.Save(); } catch { }
             SystemEvents.SessionSwitch -= SystemEventsSessionSwitch;
             SystemEvents.PowerModeChanged -= SystemEventsPowerModeChanged;
+            try { _controller.PrepareExit(); } catch { }
             try { DesktopWallpaper.Restore(); } catch { }
             try { _controller.Dispose(); } catch { }
             try { TaskbarTransparency.Restore(); } catch { }

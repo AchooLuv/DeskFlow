@@ -168,6 +168,7 @@ namespace DeskFlow
             {
                 try { previous.Dispose(); } catch { }
             }
+            Log.Info("壁纸窗口过渡背景: " + (bitmap == null ? "无" : bitmap.Width + "x" + bitmap.Height));
         }
 
         public void SetImage(Bitmap bitmap)
@@ -201,6 +202,8 @@ namespace DeskFlow
             if (_image != null) Reveal();
             else HideWindow();
             Invalidate();
+            Log.Info("壁纸窗口显示过渡背景: image=" + (_image != null)
+                + " attached=" + IsAttached + " visible=" + Visible);
         }
 
         protected override void Dispose(bool disposing)
@@ -219,8 +222,11 @@ namespace DeskFlow
 
         private void Reveal()
         {
+            Log.Info("壁纸窗口 Reveal: handle=" + Handle + " attached=" + IsAttached
+                + " visibleBefore=" + Visible);
             if (!IsHandleCreated || !IsAttached) return;
             NativeMethods.ShowWindow(Handle, NativeMethods.SW_SHOWNOACTIVATE);
+            Log.Info("壁纸窗口 Reveal 后 visible=" + Visible);
         }
 
         private void HideWindow()

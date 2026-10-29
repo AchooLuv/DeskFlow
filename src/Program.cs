@@ -80,7 +80,7 @@ namespace DeskFlow
                 }
                 Runtime.DeleteOldPayloads();
 
-                Log.Info("DeskFlow 启动，版本 1.0.21");
+                Log.Info("DeskFlow 启动，版本 1.0.22");
                 Application.Run(new TrayContext(startHidden));
             }
             catch (Exception ex)

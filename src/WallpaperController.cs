@@ -32,6 +32,7 @@ namespace DeskFlow
         private string _coverVideoPath;
         private int _coverAttempts;
         private bool _coverCapturing;
+        private int _videoRevealGeneration;
 
         public event Action PreviewChanged;
         public event Action StateChanged;
@@ -190,12 +191,26 @@ namespace DeskFlow
         private void OnVideoStarted()
         {
             _videoActive = true;
-            _window.ShowVideo();
             ApplyPauseState();
             _coverTimer.Stop();
             _coverAttempts = 0;
             _coverTimer.Start();
             RaiseState();
+
+            // libVLC fires Started before Direct3D has presented the first frame.
+            // Keep the fallback/last image for a moment so the host does not
+            // expose an empty black swapchain.
+            int generation = ++_videoRevealGeneration;
+            SynchronizationContext sync = _sync;
+            Task.Delay(400).ContinueWith(delegate
+            {
+                if (sync == null) return;
+                sync.Post(delegate
+                {
+                    if (_disposed || generation != _videoRevealGeneration || !_videoActive) return;
+                    _window.ShowVideo();
+                }, null);
+            });
         }
 
         private void CaptureVideoCover()
@@ -286,6 +301,7 @@ namespace DeskFlow
         private void OnVideoError(string message)
         {
             _videoActive = false;
+            _videoRevealGeneration++;
             _window.HideVideo();
             _window.ShowFallback();
             RaiseError(message);
@@ -307,11 +323,14 @@ namespace DeskFlow
         private void StopVideo()
         {
             _videoActive = false;
+            _videoRevealGeneration++;
+            // Hide/show the fallback before stopping Direct3D, so teardown never
+            // exposes a black swapchain.
+            if (_window != null) _window.HideVideo();
             if (_vlc != null)
             {
                 try { _vlc.Stop(); } catch { }
             }
-            if (_window != null) _window.HideVideo();
         }
 
         private void ShowFallback()
@@ -319,6 +338,12 @@ namespace DeskFlow
             if (_window != null) _window.ShowFallback();
             Action handler = PreviewChanged;
             if (handler != null) handler();
+        }
+
+        public void PrepareExit()
+        {
+            try { StopVideo(); } catch { }
+            try { ShowFallback(); } catch { }
         }
 
         public void SetUserPaused(bool paused)
