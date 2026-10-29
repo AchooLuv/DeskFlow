@@ -72,7 +72,7 @@ namespace DeskFlow
         private void LoadText()
         {
             StringBuilder builder = new StringBuilder();
-            builder.AppendLine("DeskFlow 1.0.18");
+            builder.AppendLine("DeskFlow 1.0.19");
             builder.AppendLine("Copyright © 2026 AchooLuv");
             builder.AppendLine();
             builder.AppendLine("DeskFlow is free software under the GNU General Public License v3.");

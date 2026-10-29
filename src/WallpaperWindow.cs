@@ -75,8 +75,10 @@ namespace DeskFlow
             if (target == IntPtr.Zero) target = desktop.Progman;
             if (target == IntPtr.Zero)
             {
-                Log.Warn("未找到桌面 WorkerW / Progman，将使用普通窗口。");
-                NativeMethods.ShowWindow(Handle, NativeMethods.SW_SHOWNOACTIVATE);
+                // Never show a full-screen fallback window: at boot the shell may
+                // not have created WorkerW yet. Keep hidden and retry later.
+                Log.Warn("未找到桌面 WorkerW / Progman，壁纸窗口保持隐藏并等待重试。");
+                NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
                 return false;
             }
 
@@ -110,10 +112,10 @@ namespace DeskFlow
                 ? desktop.DefView
                 : NativeMethods.HWND_TOP;
             NativeMethods.SetWindowPos(Handle, insertAfter, bounds.Left, bounds.Top,
-                bounds.Width, bounds.Height,
-                NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
-            NativeMethods.ShowWindow(Handle, NativeMethods.SW_SHOWNOACTIVATE);
+                bounds.Width, bounds.Height, NativeMethods.SWP_NOACTIVATE);
+            NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
             Log.Info("壁纸窗口已挂载到桌面 (raised=" + desktop.Raised + ", parent=" + NativeMethods.GetParent(Handle) + ")");
+            if (_image != null || _videoHost.Visible) Reveal();
             return true;
         }
 
@@ -124,13 +126,14 @@ namespace DeskFlow
             if (!IsAttached) return;
             NativeMethods.SetWindowPos(Handle, NativeMethods.HWND_TOP,
                 bounds.Left, bounds.Top, bounds.Width, bounds.Height,
-                NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
+                NativeMethods.SWP_NOACTIVATE);
         }
 
         public void DetachFromDesktop()
         {
             if (IsHandleCreated)
             {
+                HideWindow();
                 NativeMethods.SetParent(Handle, IntPtr.Zero);
             }
         }
@@ -139,6 +142,8 @@ namespace DeskFlow
         {
             _image = bitmap;
             _videoHost.Visible = false;
+            if (bitmap != null) Reveal();
+            else HideWindow();
             Invalidate();
         }
 
@@ -146,12 +151,14 @@ namespace DeskFlow
         {
             _videoHost.Visible = true;
             _videoHost.BringToFront();
+            Reveal();
             Invalidate();
         }
 
         public void HideVideo()
         {
             _videoHost.Visible = false;
+            if (_image == null) HideWindow();
             Invalidate();
         }
 
@@ -159,7 +166,19 @@ namespace DeskFlow
         {
             _image = null;
             _videoHost.Visible = false;
+            HideWindow();
             Invalidate();
+        }
+
+        private void Reveal()
+        {
+            if (!IsHandleCreated || !IsAttached) return;
+            NativeMethods.ShowWindow(Handle, NativeMethods.SW_SHOWNOACTIVATE);
+        }
+
+        private void HideWindow()
+        {
+            if (IsHandleCreated) NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
         }
 
         protected override void WndProc(ref Message m)

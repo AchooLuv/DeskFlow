@@ -157,7 +157,7 @@ namespace DeskFlow
             _coverAttempts = 0;
             if (!string.Equals(_coverVideoPath, _settings.VideoPath, StringComparison.OrdinalIgnoreCase))
                 ClearVideoCover();
-            _window.ShowVideo();
+            // Keep the desktop hidden until libVLC actually has a frame.
             if (_vlc == null) _vlc = new VlcPlayer();
             _vlc.Started -= OnVideoStarted;
             _vlc.Started += OnVideoStarted;
