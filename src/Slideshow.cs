@@ -78,6 +78,14 @@ namespace DeskFlow
             RaiseState();
         }
 
+        public void StopAndKeep()
+        {
+            _generation++;
+            _timer.Stop();
+            _paused = true;
+            RaiseState();
+        }
+
         private void Scan()
         {
             _generation++;

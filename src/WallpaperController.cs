@@ -108,7 +108,9 @@ namespace DeskFlow
                 _slideshow.SetPaused(true);
                 if (modeChanged || force)
                 {
-                    _slideshow.StopAndClear();
+                    // Keep the last image visible while the video opens; hiding the
+                    // window here is what caused a black flash on every switch.
+                    _slideshow.StopAndKeep();
                 }
                 if (force || modeChanged || videoChanged || loopChanged || !_videoActive || !_window.IsAttached)
                 {
@@ -438,7 +440,7 @@ namespace DeskFlow
                     Reattach();
                     return;
                 }
-                if (!_window.IsAttached && _attachFailures < 6)
+                if (!_window.IsAttached && _attachFailures < 12)
                 {
                     if ((DateTime.UtcNow - _lastAttachAttempt).TotalSeconds >= 30)
                     {

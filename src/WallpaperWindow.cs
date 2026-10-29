@@ -71,13 +71,15 @@ namespace DeskFlow
         {
             if (!IsHandleCreated) CreateHandle();
             NativeMethods.DesktopTarget desktop = NativeMethods.FindDesktopTarget();
+            // On Windows 10 the wallpaper is painted by WorkerW. Falling back to
+            // Progman makes hiding the window reveal a black desktop, which is
+            // exactly the startup/switch/exit black screen. Wait for WorkerW.
             IntPtr target = desktop.Raised ? desktop.Progman : desktop.WorkerW;
-            if (target == IntPtr.Zero) target = desktop.Progman;
             if (target == IntPtr.Zero)
             {
-                // Never show a full-screen fallback window: at boot the shell may
-                // not have created WorkerW yet. Keep hidden and retry later.
-                Log.Warn("未找到桌面 WorkerW / Progman，壁纸窗口保持隐藏并等待重试。");
+                Log.Warn("未找到可用的桌面 WorkerW/Progman，壁纸窗口保持隐藏并等待重试。"
+                    + " progman=" + desktop.Progman + " workerw=" + desktop.WorkerW
+                    + " raised=" + desktop.Raised);
                 NativeMethods.ShowWindow(Handle, NativeMethods.SW_HIDE);
                 return false;
             }
@@ -133,8 +135,24 @@ namespace DeskFlow
         {
             if (IsHandleCreated)
             {
+                IntPtr parent = NativeMethods.GetParent(Handle);
                 HideWindow();
                 NativeMethods.SetParent(Handle, IntPtr.Zero);
+                // Ask Explorer to repaint the real wallpaper immediately, especially
+                // when the old parent was Progman rather than WorkerW.
+                if (parent != IntPtr.Zero && NativeMethods.IsWindow(parent))
+                {
+                    NativeMethods.RedrawWindow(parent, IntPtr.Zero, IntPtr.Zero,
+                        NativeMethods.RDW_INVALIDATE | NativeMethods.RDW_ERASE |
+                        NativeMethods.RDW_ALLCHILDREN | NativeMethods.RDW_UPDATENOW);
+                }
+                IntPtr progman = NativeMethods.FindWindow("Progman", null);
+                if (progman != IntPtr.Zero)
+                {
+                    NativeMethods.RedrawWindow(progman, IntPtr.Zero, IntPtr.Zero,
+                        NativeMethods.RDW_INVALIDATE | NativeMethods.RDW_ERASE |
+                        NativeMethods.RDW_ALLCHILDREN | NativeMethods.RDW_UPDATENOW);
+                }
             }
         }
 
