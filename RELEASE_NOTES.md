@@ -1,38 +1,30 @@
-# DeskFlow v1.0.23
+# DeskFlow v1.0.24
 
-紧急修复 v1.0.22 动态壁纸完全无法播放的问题。
+紧急修复 v1.0.23 重启后“壁纸未挂载到桌面”的问题。
 
 ## 回归原因
 
-v1.0.22 为了延迟显示视频，使用了：
-
-```csharp
-SynchronizationContext sync = _sync;
-```
-
-但 `WallpaperController` 是在 `Application.Run()` 之前构造的，此时 `SynchronizationContext.Current` 为 `null`，延迟回调直接返回，`ShowVideo()` 永远不会执行。所以视频一直在后台播放，窗口却始终不显示。
+v1.0.22 为了消除黑闪，完全移除了向 Progman 发送 `0x052C` 的逻辑。但该消息正是 **WorkerW 不存在时创建桌面挂载点** 所必需的。重启后 Explorer 尚未创建 WorkerW，程序就永远找不到挂载目标，于是提示未挂载。
 
 ## 修复
 
-- 延迟显示视频改为直接投递到壁纸窗口句柄：
-  - `WallpaperWindow.BeginInvoke(...)`
-  - 不再依赖 `SynchronizationContext`
-- 视频首帧前继续显示系统壁纸/旧画面，约 400ms 后显示视频。
-- 停止视频时先隐藏视频、显示过渡背景，再停止 VLC。
-- 退出时先 `PrepareExit()`，再恢复系统壁纸、销毁窗口。
-- 保留 v1.0.22 移除 `0x052C` 桌面重排、WorkerW 目标修正、系统壁纸恢复。
+- **只在 WorkerW 不存在时发送一次 `0x052C`** 创建挂载点。
+- 已有 WorkerW 时绝不发送，避免每次挂载都让 Explorer 重排桌面造成黑闪。
+- 发送后重新扫描 WorkerW；找不到就保持窗口隐藏并重试。
+- 保留 v1.0.23 的视频显示修复（`BeginInvoke`，不依赖空的 `SynchronizationContext`）。
+- 保留系统壁纸过渡背景、视频首帧延迟揭示、退出恢复系统壁纸。
 
-## 验证
+## 说明
 
-- 本地启动后确认 VLC video main/output 窗口为 `vis=True`，动态壁纸可显示。
-- 启动录制不再出现持续黑帧。
+- 开机自动启动请先把 `C:\Program Files\DeskFlow.exe` 替换为 v1.0.24。
+- 这次修复的是“完全用不了”的挂载回归；黑闪问题后续再继续收敛。
 
 ## 下载
 
 | 文件 | 说明 | SHA-256 |
 | --- | --- | --- |
-| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `2FE9104E299DDDA7D19BC04470AD99687AE8E75098A927E657BC6FA56EC298E8` |
-| `DeskFlow-1.0.23-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `290B4A8E841904CFB5ABEFA0A66A10A399A12F0B555D9BCE5B369CE082AB01CF` |
+| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `927BD86914F4FE18E2FEAE303437A9EFA9399DBEB852077E91FD4CFCCFA55439` |
+| `DeskFlow-1.0.24-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `118D34FFC487A425044A66CB9FC163A8798B40E172E27031E6F12954EB1B02D1` |
 
 ## 系统要求
 

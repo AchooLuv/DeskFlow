@@ -206,10 +206,9 @@ namespace DeskFlow
             target.Progman = FindWindow("Progman", null);
             if (target.Progman == IntPtr.Zero) return target;
 
-            // Do not send the undocumented 0x052C message on every attach: doing so
-            // makes Explorer repaint/recreate the desktop and is itself a visible
-            // black flash. WorkerW already exists on normal Windows 10 sessions;
-            // AttachToDesktop waits and retries when it does not.
+            // Do not send the undocumented 0x052C message when WorkerW already
+            // exists: doing so makes Explorer repaint the desktop and causes a
+            // black flash. It is only needed to create the WorkerW at boot.
             target.DefView = FindWindowEx(target.Progman, IntPtr.Zero, "SHELLDLL_DefView", null);
             int exStyle = GetWindowLong(target.Progman, GWL_EXSTYLE);
             target.Raised = (exStyle & WS_EX_NOREDIRECTIONBITMAP) != 0;
@@ -224,19 +223,38 @@ namespace DeskFlow
                 return target;
             }
 
+            FindWorkerW(ref target);
+
+            if (target.WorkerW == IntPtr.Zero)
+            {
+                // Boot can reach here before Explorer has created WorkerW.
+                // Ask Progman to create it, then rescan once.
+                IntPtr result;
+                SendMessageTimeout(target.Progman, 0x052C, new IntPtr(0xD), new IntPtr(0x1),
+                    SMTO_ABORTIFHUNG, 1000, out result);
+                target.DefView = FindWindowEx(target.Progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+                FindWorkerW(ref target);
+            }
+
+            return target;
+        }
+
+        private static void FindWorkerW(ref DesktopTarget target)
+        {
+            DesktopTarget scan = target;
+            scan.WorkerW = IntPtr.Zero;
             EnumWindows(delegate(IntPtr hWnd, IntPtr lParam)
             {
                 IntPtr defView = FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", null);
                 if (defView != IntPtr.Zero)
                 {
-                    target.DefView = defView;
+                    scan.DefView = defView;
                     IntPtr candidate = FindWindowEx(IntPtr.Zero, hWnd, "WorkerW", null);
-                    if (candidate != IntPtr.Zero) target.WorkerW = candidate;
+                    if (candidate != IntPtr.Zero) scan.WorkerW = candidate;
                 }
                 return true;
             }, IntPtr.Zero);
-
-            return target;
+            target = scan;
         }
 
         public static List<IntPtr> FindTaskbars()
