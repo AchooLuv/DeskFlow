@@ -432,7 +432,9 @@ namespace DeskFlow
             int top = ContentTop;
             int previewWidth = (int)(inner * 0.60f);
             int sideWidth = inner - previewWidth - 16;
-            const int previewHeight = 236;
+            // Give the first-row preview the extra height; keep the action row
+            // at a stable minimum instead of letting it swallow everything.
+            int previewHeight = Math.Max(236, Height - top - 126 - 196);
 
             _preview.SetBounds(margin, top, previewWidth, previewHeight);
             _sideCard.SetBounds(margin + previewWidth + 16, top, sideWidth, previewHeight);
