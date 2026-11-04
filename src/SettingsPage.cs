@@ -143,12 +143,16 @@ namespace DeskFlow
             aboutTitle.SetBounds(18, 14, 220, 24);
             _aboutCard.Controls.Add(aboutTitle);
 
-            _versionLabel = Ui.Label("DeskFlow 1.0.28", Theme.BodyBold, Theme.Text, Theme.Card);
-            _versionLabel.SetBounds(18, 46, 240, 22);
+            _versionLabel = Ui.Label("DeskFlow 1.0.29", Theme.BodyBold, Theme.Text, Theme.Card);
+            _versionLabel.SetBounds(18, 42, 240, 22);
             _aboutCard.Controls.Add(_versionLabel);
 
+            Label aboutDescription = Ui.Label("图片轮播 · 动态壁纸 · 任务栏透明", Theme.Small, Theme.TextMuted, Theme.Card);
+            aboutDescription.SetBounds(18, 64, 360, 22);
+            _aboutCard.Controls.Add(aboutDescription);
+
             _platformLabel = Ui.Label("Windows 10 / 11 · 64 位 · 仅主显示器", Theme.Small, Theme.TextMuted, Theme.Card);
-            _platformLabel.SetBounds(18, 68, 360, 22);
+            _platformLabel.SetBounds(18, 86, 360, 22);
             _aboutCard.Controls.Add(_platformLabel);
 
             _link = new LinkLabel
@@ -161,7 +165,7 @@ namespace DeskFlow
                 BackColor = Theme.Card,
                 AutoSize = false
             };
-            _link.SetBounds(18, 90, 300, 22);
+            _link.SetBounds(18, 108, 300, 22);
             _link.LinkClicked += delegate
             {
                 try { Process.Start(new ProcessStartInfo("https://github.com/AchooLuv/DeskFlow") { UseShellExecute = true }); }
@@ -169,8 +173,8 @@ namespace DeskFlow
             };
             _aboutCard.Controls.Add(_link);
 
-            _note = Ui.Label("DeskFlow 是开源软件。第三方组件版权与许可见程序目录或仓库。", Theme.Tiny, Theme.TextDim, Theme.Card);
-            _note.SetBounds(18, 114, 500, 22);
+            _note = Ui.Label("GPL v3 开源软件 · © 2026 AchooLuv", Theme.Tiny, Theme.TextDim, Theme.Card);
+            _note.SetBounds(18, 130, 500, 22);
             _aboutCard.Controls.Add(_note);
 
             _openLogs = new UiButton { Text = "打开日志", Style = UiButtonStyle.Ghost, Width = 96, Height = 36 };
@@ -264,11 +268,11 @@ namespace DeskFlow
             int aboutY = top + cardHeight + gap;
             int aboutHeight = Math.Max(150, Height - aboutY - 18);
             _aboutCard.SetBounds(margin, aboutY, inner, aboutHeight);
-            _openLogs.SetBounds(_aboutCard.Width - 350, _aboutCard.Height - 52, 96, 36);
-            _license.SetBounds(_aboutCard.Width - 244, _aboutCard.Height - 52, 96, 36);
-            _reset.SetBounds(_aboutCard.Width - 136, _aboutCard.Height - 52, 118, 36);
-            _note.Width = Math.Max(220, _aboutCard.Width - 280);
-            _link.Width = Math.Max(200, _aboutCard.Width - 300);
+            _openLogs.SetBounds(_aboutCard.Width - 350, 14, 96, 36);
+            _license.SetBounds(_aboutCard.Width - 244, 14, 96, 36);
+            _reset.SetBounds(_aboutCard.Width - 136, 14, 118, 36);
+            _note.Width = Math.Max(220, _aboutCard.Width - 390);
+            _link.Width = Math.Max(200, _aboutCard.Width - 390);
         }
     }
 }

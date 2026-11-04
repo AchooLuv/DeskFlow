@@ -1,19 +1,26 @@
-# DeskFlow v1.0.28
+# DeskFlow v1.0.29
 
-关于页面去掉“播放引擎 VLC 3.0.21 · WebP libwebp 1.6.0”这一行。
+优化设置页“关于 DeskFlow”的信息和按钮布局。
 
 ## 本版调整
 
-- 删除“关于 DeskFlow”中的播放引擎版本行。
-- 后续的 GitHub 链接和开源说明上移，避免留下空档。
+- 关于信息更贴合软件本身：
+  - DeskFlow 版本
+  - 图片轮播 · 动态壁纸 · 任务栏透明
+  - 系统平台
+  - GitHub 地址
+  - GPL v3 / © 2026 AchooLuv
+- “打开日志 / 开源许可 / 恢复默认设置”移到关于卡片右上角，避免和最后一行文字重叠。
+- 关于卡片的文本宽度跟随窗口调整。
+- 最小窗口和稍小窗口下不再发生按钮与文字重叠。
 - 不涉及壁纸挂载、VLC、任务栏、开机启动或窗口尺寸逻辑。
 
 ## 下载
 
 | 文件 | 说明 | SHA-256 |
 | --- | --- | --- |
-| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `DC7102CAFF14CBA34E178D4B0C2D6775ADCE8B788071728DF0F0782759DB83DB` |
-| `DeskFlow-1.0.28-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `F86A18C717F913EF5CAF49A1A9D55F6C8DB83CB5243BE16DB045EA2980CFD901` |
+| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `1849D1A77796447B7F42851213C5AE1468A350F098CBA3F50F37344EA3CBAD88` |
+| `DeskFlow-1.0.29-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `7CAD4FC26F6F652BDAD43AA891544EAA9F7AF646B8120B8DCF5A8B051E77F34B` |
 
 ## 系统要求
 
