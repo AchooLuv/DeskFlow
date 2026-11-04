@@ -143,7 +143,7 @@ namespace DeskFlow
             aboutTitle.SetBounds(18, 14, 220, 24);
             _aboutCard.Controls.Add(aboutTitle);
 
-            _versionLabel = Ui.Label("DeskFlow 1.0.29", Theme.BodyBold, Theme.Text, Theme.Card);
+            _versionLabel = Ui.Label("DeskFlow 1.0.30", Theme.BodyBold, Theme.Text, Theme.Card);
             _versionLabel.SetBounds(18, 42, 240, 22);
             _aboutCard.Controls.Add(_versionLabel);
 
@@ -268,9 +268,9 @@ namespace DeskFlow
             int aboutY = top + cardHeight + gap;
             int aboutHeight = Math.Max(150, Height - aboutY - 18);
             _aboutCard.SetBounds(margin, aboutY, inner, aboutHeight);
-            _openLogs.SetBounds(_aboutCard.Width - 350, 14, 96, 36);
-            _license.SetBounds(_aboutCard.Width - 244, 14, 96, 36);
-            _reset.SetBounds(_aboutCard.Width - 136, 14, 118, 36);
+            _openLogs.SetBounds(_aboutCard.Width - 350, _aboutCard.Height - 52, 96, 36);
+            _license.SetBounds(_aboutCard.Width - 244, _aboutCard.Height - 52, 96, 36);
+            _reset.SetBounds(_aboutCard.Width - 136, _aboutCard.Height - 52, 118, 36);
             _note.Width = Math.Max(220, _aboutCard.Width - 390);
             _link.Width = Math.Max(200, _aboutCard.Width - 390);
         }
