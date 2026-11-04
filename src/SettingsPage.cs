@@ -20,7 +20,6 @@ namespace DeskFlow
         private readonly SettingRow _batteryRow;
         private readonly Label _versionLabel;
         private readonly Label _platformLabel;
-        private readonly Label _engineLabel;
         private readonly LinkLabel _link;
         private readonly Label _note;
         private readonly Label _perfHint;
@@ -144,17 +143,13 @@ namespace DeskFlow
             aboutTitle.SetBounds(18, 14, 220, 24);
             _aboutCard.Controls.Add(aboutTitle);
 
-            _versionLabel = Ui.Label("DeskFlow 1.0.27", Theme.BodyBold, Theme.Text, Theme.Card);
+            _versionLabel = Ui.Label("DeskFlow 1.0.28", Theme.BodyBold, Theme.Text, Theme.Card);
             _versionLabel.SetBounds(18, 46, 240, 22);
             _aboutCard.Controls.Add(_versionLabel);
 
             _platformLabel = Ui.Label("Windows 10 / 11 · 64 位 · 仅主显示器", Theme.Small, Theme.TextMuted, Theme.Card);
             _platformLabel.SetBounds(18, 68, 360, 22);
             _aboutCard.Controls.Add(_platformLabel);
-
-            _engineLabel = Ui.Label("播放引擎 VLC 3.0.21 · WebP libwebp 1.6.0", Theme.Small, Theme.TextMuted, Theme.Card);
-            _engineLabel.SetBounds(18, 90, 400, 22);
-            _aboutCard.Controls.Add(_engineLabel);
 
             _link = new LinkLabel
             {
@@ -166,7 +161,7 @@ namespace DeskFlow
                 BackColor = Theme.Card,
                 AutoSize = false
             };
-            _link.SetBounds(18, 112, 300, 22);
+            _link.SetBounds(18, 90, 300, 22);
             _link.LinkClicked += delegate
             {
                 try { Process.Start(new ProcessStartInfo("https://github.com/AchooLuv/DeskFlow") { UseShellExecute = true }); }
@@ -175,7 +170,7 @@ namespace DeskFlow
             _aboutCard.Controls.Add(_link);
 
             _note = Ui.Label("DeskFlow 是开源软件。第三方组件版权与许可见程序目录或仓库。", Theme.Tiny, Theme.TextDim, Theme.Card);
-            _note.SetBounds(18, 136, 500, 22);
+            _note.SetBounds(18, 114, 500, 22);
             _aboutCard.Controls.Add(_note);
 
             _openLogs = new UiButton { Text = "打开日志", Style = UiButtonStyle.Ghost, Width = 96, Height = 36 };

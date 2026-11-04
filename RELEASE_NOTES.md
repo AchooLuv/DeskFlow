@@ -1,20 +1,19 @@
-# DeskFlow v1.0.27
+# DeskFlow v1.0.28
 
-限制窗口最小尺寸。
+关于页面去掉“播放引擎 VLC 3.0.21 · WebP libwebp 1.6.0”这一行。
 
 ## 本版调整
 
-- `MinimumSize` 从 `940 × 620` 调整为 `1000 × 660`。
-- 这是之前版本的默认窗口大小；现在窗口不能再缩小到比它更小。
-- 最大化、还原、放大不受影响。
-- 不涉及壁纸挂载、VLC、任务栏或开机启动逻辑。
+- 删除“关于 DeskFlow”中的播放引擎版本行。
+- 后续的 GitHub 链接和开源说明上移，避免留下空档。
+- 不涉及壁纸挂载、VLC、任务栏、开机启动或窗口尺寸逻辑。
 
 ## 下载
 
 | 文件 | 说明 | SHA-256 |
 | --- | --- | --- |
-| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `4E9BC572FF777B679060C733EDA982B38F911B4FF62284EF5C219DAAF22C3DFB` |
-| `DeskFlow-1.0.27-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `7A09280E8527835DBBDF25CF36C353F4F017CC0ED8EC875872BD03E797DA6B86` |
+| `DeskFlow.exe` | 单文件便携版，约 19.5 MB | `DC7102CAFF14CBA34E178D4B0C2D6775ADCE8B788071728DF0F0782759DB83DB` |
+| `DeskFlow-1.0.28-slim-win64.zip` | 含程序、README、三张截图与许可，约 19.4 MB | `F86A18C717F913EF5CAF49A1A9D55F6C8DB83CB5243BE16DB045EA2980CFD901` |
 
 ## 系统要求
 
