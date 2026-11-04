@@ -50,7 +50,7 @@ namespace DeskFlow
             AutoScaleDimensions = new SizeF(96f, 96f);
             AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(1000, 660);
-            MinimumSize = new Size(940, 620);
+            MinimumSize = new Size(1000, 660);
             BackColor = Theme.Background;
             DoubleBuffered = true;
             KeyPreview = true;
@@ -143,7 +143,7 @@ namespace DeskFlow
             _statusPerf.SetBounds(12, 78, 158, 18);
             _statusCard.Controls.Add(_statusPerf);
 
-            _version = Ui.Label("v1.0.26  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
+            _version = Ui.Label("v1.0.27  ·  主显示器", Theme.Tiny, Theme.TextDim, Theme.Sidebar);
             _version.SetBounds(16, 0, 180, 18);
             _sidebar.Controls.Add(_version);
 
