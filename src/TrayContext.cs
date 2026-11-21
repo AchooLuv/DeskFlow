@@ -21,7 +21,15 @@ namespace DeskFlow
         private readonly ToolStripMenuItem _exitItem;
         private readonly Timer _timer;
         private readonly Timer _saveTimer;
+        private readonly Timer _taskbarRefreshTimer;
         private readonly MessageWindow _messageWindow;
+        private int _taskbarRefreshTicks;
+        private readonly NativeMethods.WinEventDelegate _foregroundHookProc;
+        private readonly NativeMethods.WinEventDelegate _objectHookProc;
+        private IntPtr _foregroundHook;
+        private IntPtr _objectHook;
+        private bool _shellFlyoutOpen;
+        private bool _ownForeground;
         private MainForm _form;
         private bool _exiting;
         private bool _fullscreenPaused;
@@ -37,7 +45,6 @@ namespace DeskFlow
         public TrayContext(bool startHidden)
         {
             _settings = AppSettings.Load();
-            TaskbarTransparency.Initialize(_settings.TaskbarTransparent);
             _lastAutoStart = _settings.AutoStart;
             EnsureAutoStart();
             _controller = new WallpaperController(_settings);
@@ -109,6 +116,30 @@ namespace DeskFlow
             _tray.BalloonTipClosed += delegate { _tray.Visible = true; };
 
             _messageWindow = new MessageWindow(this);
+            _foregroundHookProc = OnForegroundChanged;
+            _foregroundHook = NativeMethods.SetWinEventHook(
+                NativeMethods.EVENT_SYSTEM_FOREGROUND, NativeMethods.EVENT_SYSTEM_FOREGROUND,
+                IntPtr.Zero, _foregroundHookProc, 0, 0,
+                NativeMethods.WINEVENT_OUTOFCONTEXT);
+            _objectHookProc = OnShellWindowChanged;
+            _objectHook = NativeMethods.SetWinEventHook(
+                NativeMethods.EVENT_OBJECT_SHOW, NativeMethods.EVENT_OBJECT_HIDE,
+                IntPtr.Zero, _objectHookProc, 0, 0,
+                NativeMethods.WINEVENT_OUTOFCONTEXT);
+            if (_foregroundHook == IntPtr.Zero || _objectHook == IntPtr.Zero)
+                Log.Warn("任务栏透明：无法注册 shell 窗口事件钩子");
+            TaskbarTransparency.Initialize(_settings.TaskbarTransparent);
+            _taskbarRefreshTimer = new Timer { Interval = 100 };
+            _taskbarRefreshTimer.Tick += delegate
+            {
+                if (_exiting || _taskbarRefreshTicks <= 0)
+                {
+                    _taskbarRefreshTimer.Stop();
+                    return;
+                }
+                _taskbarRefreshTicks--;
+                try { TaskbarTransparency.Apply(); } catch { }
+            };
             _timer = new Timer { Interval = 3000 };
             _timer.Tick += delegate { OnTick(); };
             _timer.Start();
@@ -205,6 +236,43 @@ namespace DeskFlow
             {
                 Log.Warn("更新开机启动失败: " + ex.Message);
             }
+        }
+
+        private void OnForegroundChanged(IntPtr hook, uint eventType, IntPtr hwnd,
+            int idObject, int idChild, uint thread, uint time)
+        {
+            if (_exiting) return;
+            bool flyout = NativeMethods.IsShellFlyoutForeground();
+            bool own = NativeMethods.IsOwnProcessForeground();
+            bool changed = false;
+            if (flyout != _shellFlyoutOpen)
+            {
+                _shellFlyoutOpen = flyout;
+                changed = true;
+            }
+            if (own != _ownForeground)
+            {
+                _ownForeground = own;
+                changed = true;
+            }
+            if (changed) StartTaskbarRefresh();
+        }
+
+        private void OnShellWindowChanged(IntPtr hook, uint eventType, IntPtr hwnd,
+            int idObject, int idChild, uint thread, uint time)
+        {
+            if (_exiting || !NativeMethods.IsShellFlyoutWindow(hwnd)) return;
+            StartTaskbarRefresh();
+        }
+
+        private void StartTaskbarRefresh()
+        {
+            // Only Start/Search transitions start this bounded convergence.
+            // Normal Alt-Tab does not touch the taskbar.
+            try { TaskbarTransparency.Reapply(); } catch { }
+            _taskbarRefreshTicks = 9;
+            _taskbarRefreshTimer.Stop();
+            _taskbarRefreshTimer.Start();
         }
 
         private void OnTick()
@@ -318,7 +386,7 @@ namespace DeskFlow
             else if (e.Reason == SessionSwitchReason.SessionUnlock)
             {
                 _controller.SetSessionLocked(false);
-                TaskbarTransparency.Apply();
+                TaskbarTransparency.Reapply();
             }
         }
 
@@ -334,10 +402,16 @@ namespace DeskFlow
             }
         }
 
+        internal void OnTaskbarEnvironmentChanged()
+        {
+            if (_exiting) return;
+            try { TaskbarTransparency.Reapply(); } catch { }
+        }
+
         internal void OnTaskbarCreated()
         {
             Log.Info("检测到任务栏重建，正在恢复壁纸与任务栏样式。");
-            TaskbarTransparency.Apply();
+            TaskbarTransparency.Reapply();
             _controller.Reattach();
         }
 
@@ -349,6 +423,18 @@ namespace DeskFlow
             try { _timer.Dispose(); } catch { }
             try { _saveTimer.Stop(); } catch { }
             try { _saveTimer.Dispose(); } catch { }
+            try { _taskbarRefreshTimer.Stop(); } catch { }
+            try { _taskbarRefreshTimer.Dispose(); } catch { }
+            if (_foregroundHook != IntPtr.Zero)
+            {
+                try { NativeMethods.UnhookWinEvent(_foregroundHook); } catch { }
+                _foregroundHook = IntPtr.Zero;
+            }
+            if (_objectHook != IntPtr.Zero)
+            {
+                try { NativeMethods.UnhookWinEvent(_objectHook); } catch { }
+                _objectHook = IntPtr.Zero;
+            }
             try { _settings.Save(); } catch { }
             SystemEvents.SessionSwitch -= SystemEventsSessionSwitch;
             SystemEvents.PowerModeChanged -= SystemEventsPowerModeChanged;
@@ -412,6 +498,11 @@ namespace DeskFlow
                 if (m.Msg == (int)ShowSettingsMessage)
                 {
                     _owner.ShowSettings();
+                    return;
+                }
+                if (m.Msg == 0x031A || m.Msg == 0x007E) // WM_THEMECHANGED / WM_DISPLAYCHANGE
+                {
+                    _owner.OnTaskbarEnvironmentChanged();
                     return;
                 }
                 base.WndProc(ref m);

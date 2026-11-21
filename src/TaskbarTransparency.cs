@@ -21,26 +21,23 @@ namespace DeskFlow
         public static void Initialize(bool enabled)
         {
             _enabled = enabled;
-            if (_enabled)
-            {
-                ApplyNativeOpacity();
-                Apply();
-            }
+            if (_enabled) Reapply();
         }
 
         public static void SetEnabled(bool enabled)
         {
             if (_enabled == enabled) return;
             _enabled = enabled;
-            if (enabled)
-            {
-                ApplyNativeOpacity();
-                Apply();
-            }
-            else
-            {
-                Restore(true);
-            }
+            if (enabled) Reapply();
+            else Restore(true);
+        }
+
+        public static void Reapply()
+        {
+            if (!_enabled) return;
+            // Match a settings off/on cycle: the native value is broadcast too.
+            ApplyNativeOpacity();
+            Apply();
         }
 
         public static void Apply()
@@ -50,8 +47,6 @@ namespace DeskFlow
             {
                 List<IntPtr> taskbars = NativeMethods.FindTaskbars();
                 if (taskbars.Count == 0) return;
-                bool windows11 = NativeMethods.IsWindows11;
-
                 foreach (IntPtr hwnd in taskbars)
                 {
                     if (!Original.ContainsKey(hwnd))
@@ -78,7 +73,7 @@ namespace DeskFlow
                     };
                     Set(hwnd, policy);
 
-                    if (windows11)
+                    if (NativeMethods.IsWindows11)
                     {
                         IntPtr result;
                         NativeMethods.SendMessageTimeout(hwnd, NativeMethods.WM_DWMCOMPOSITIONCHANGED,

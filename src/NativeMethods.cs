@@ -87,6 +87,38 @@ namespace DeskFlow
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
+        public const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+        public const uint EVENT_OBJECT_SHOW = 0x8002;
+        public const uint EVENT_OBJECT_HIDE = 0x8003;
+        public const uint WINEVENT_OUTOFCONTEXT = 0x0000;
+        public const uint WINEVENT_SKIPOWNPROCESS = 0x0002;
+
+        public delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType,
+            IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax,
+            IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc,
+            uint idProcess, uint idThread, uint dwFlags);
+
+        [DllImport("user32.dll")]
+        public static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+
+        public static bool IsShellFlyoutWindow(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero) return false;
+            StringBuilder cls = new StringBuilder(128);
+            GetClassName(hwnd, cls, cls.Capacity);
+            string name = cls.ToString();
+            return name == "Windows.UI.Core.CoreWindow"
+                || name == "XamlExplorerHostIslandWindow";
+        }
+
+        public static bool IsShellFlyoutForeground()
+        {
+            return IsShellFlyoutWindow(GetForegroundWindow());
+        }
+
         [DllImport("user32.dll")]
         public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
@@ -95,6 +127,18 @@ namespace DeskFlow
 
         [DllImport("user32.dll")]
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+        [DllImport("kernel32.dll")]
+        public static extern uint GetCurrentProcessId();
+
+        public static bool IsOwnProcessForeground()
+        {
+            IntPtr hwnd = GetForegroundWindow();
+            if (hwnd == IntPtr.Zero) return false;
+            uint pid;
+            GetWindowThreadProcessId(hwnd, out pid);
+            return pid == GetCurrentProcessId();
+        }
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
